@@ -35,13 +35,18 @@ class BinaryRandomForestModel:
     Only distinguishes between boundary (1) and non-boundary (0) positions.
     """
     
-    def __init__(self, **kwargs):
+    def __init__(self, threshold: float = 0.5, **kwargs):
         """
         Initialize the BinaryRandomForestModel.
         
         Args:
+            threshold (float, optional): Probability threshold for classification (0.0-1.0).
+                                        Values below 0.5 favor recall (fewer false negatives),
+                                        values above 0.5 favor precision (fewer false positives).
+                                        Defaults to 0.5.
             **kwargs: Parameters to pass to the underlying RandomForestClassifier
         """
+        self.threshold = threshold
         self.model_params = kwargs.copy() if kwargs else {
             "n_estimators": 100,
             "max_depth": 16,
@@ -79,17 +84,42 @@ class BinaryRandomForestModel:
             
         self.model.fit(X=X, y=y_binary)
         
-    def predict(self, X: List[List[int]]) -> List[int]:
+    def predict(self, X: List[List[int]], threshold: Optional[float] = None) -> List[int]:
         """
         Predict segmentation labels for the given features.
         
         Args:
             X (List[List[int]]): Feature vectors
+            threshold (float, optional): Custom probability threshold to use for this prediction.
+                                        If None, use the model's default threshold.
+                                        Defaults to None.
             
         Returns:
             List[int]: Predicted labels (0 for non-boundary, 1 for boundary)
         """
-        return self.model.predict(X)
+        # Use custom threshold if provided, otherwise use the model's default
+        thresh = threshold if threshold is not None else self.threshold
+        
+        if thresh == 0.5:
+            # Use the default scikit-learn prediction for the default threshold
+            return self.model.predict(X)
+        else:
+            # Get class probabilities and apply custom threshold
+            probas = self.model.predict_proba(X)
+            # Class 1 (boundary) is typically the second column
+            return [1 if proba[1] >= thresh else 0 for proba in probas]
+            
+    def predict_proba(self, X: List[List[int]]) -> List[List[float]]:
+        """
+        Predict class probabilities for the given features.
+        
+        Args:
+            X (List[List[int]]): Feature vectors
+            
+        Returns:
+            List[List[float]]: Predicted probabilities for each class
+        """
+        return self.model.predict_proba(X).tolist()
         
     def get_metrics(self, X: List[List[int]], y: List[int]) -> Dict[str, Any]:
         """
@@ -173,12 +203,16 @@ class BinaryRandomForestModel:
 
 
 # Factory function for creating models
-def create_model(model_type: str = "random_forest", **kwargs) -> TextSegmentationModel:
+def create_model(model_type: str = "random_forest", threshold: float = 0.5, **kwargs) -> TextSegmentationModel:
     """
     Create a text segmentation model.
     
     Args:
         model_type (str): Type of model to create (only "random_forest" is supported)
+        threshold (float, optional): Probability threshold for classification (0.0-1.0).
+                                   Values below 0.5 favor recall (fewer false negatives),
+                                   values above 0.5 favor precision (fewer false positives).
+                                   Defaults to 0.5.
         **kwargs: Parameters to pass to the model constructor
         
     Returns:
@@ -188,6 +222,6 @@ def create_model(model_type: str = "random_forest", **kwargs) -> TextSegmentatio
         ValueError: If the model type is not supported
     """
     if model_type.lower() in ["random_forest", "binary_random_forest"]:
-        return BinaryRandomForestModel(**kwargs)
+        return BinaryRandomForestModel(threshold=threshold, **kwargs)
     else:
         raise ValueError(f"Unsupported model type: {model_type}. Only 'random_forest' is supported.")

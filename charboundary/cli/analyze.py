@@ -28,6 +28,8 @@ def add_analyze_args(subparsers) -> None:
     parser.add_argument("--format", choices=["annotated", "sentences", "paragraphs"],
                         default="annotated", help="Output format (default: annotated)")
     parser.add_argument("--metrics", help="Path to save metrics as JSON")
+    parser.add_argument("--threshold", type=float, 
+                        help="Probability threshold for classification (0.0-1.0). Values below 0.5 favor recall, values above 0.5 favor precision.")
 
 
 def handle_analyze(args) -> int:
@@ -42,7 +44,7 @@ def handle_analyze(args) -> int:
     """
     print(f"Loading model from {args.model}")
     try:
-        segmenter = TextSegmenter.load(args.model)
+        segmenter = TextSegmenter.load(args.model, trust_model=True)
     except Exception as e:
         print(f"Error loading model: {e}")
         return 1
@@ -57,12 +59,12 @@ def handle_analyze(args) -> int:
     
     # Process based on the requested format
     if args.format == "annotated":
-        result = segmenter.segment_text(text)
+        result = segmenter.segment_text(text, threshold=args.threshold)
     elif args.format == "sentences":
-        sentences = segmenter.segment_to_sentences(text)
+        sentences = segmenter.segment_to_sentences(text, threshold=args.threshold)
         result = "\n".join(sentences)
     elif args.format == "paragraphs":
-        paragraphs = segmenter.segment_to_paragraphs(text)
+        paragraphs = segmenter.segment_to_paragraphs(text, threshold=args.threshold)
         result = "\n\n".join(paragraphs)
     
     # Save to output file if specified

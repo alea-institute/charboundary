@@ -37,6 +37,8 @@ def add_train_args(subparsers) -> None:
                         help="Sampling rate for non-terminal characters (default: 0.1)")
     parser.add_argument("--max-samples", type=int, 
                         help="Maximum number of samples to use for training")
+    parser.add_argument("--threshold", type=float, default=0.5,
+                        help="Probability threshold for classification (0.0-1.0). Values below 0.5 favor recall, values above 0.5 favor precision. (default: 0.5)")
     parser.add_argument("--metrics-file", 
                         help="Optional path to save training metrics as JSON")
 
@@ -74,6 +76,7 @@ def handle_train(args) -> int:
         max_samples=args.max_samples,
         left_window=args.left_window,
         right_window=args.right_window,
+        threshold=args.threshold,
     )
     
     # Calculate training time

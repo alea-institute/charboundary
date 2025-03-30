@@ -36,6 +36,8 @@ def add_best_model_args(subparsers) -> None:
                         help="Number of estimators to try (default: 50, 100, 200)")
     parser.add_argument("--max-depth-values", type=int, nargs="+", default=[8, 16, 24],
                         help="Max depth values to try (default: 8, 16, 24)")
+    parser.add_argument("--threshold-values", type=float, nargs="+", default=[0.3, 0.5, 0.7],
+                        help="Probability threshold values to try (default: 0.3, 0.5, 0.7)")
     parser.add_argument("--sample-rate", type=float, default=0.1,
                         help="Sample rate for non-terminal characters (default: 0.1)")
     parser.add_argument("--max-samples", type=int, 
@@ -60,11 +62,13 @@ def handle_best_model(args) -> int:
     right_windows = args.right_window_values
     n_estimators_values = args.n_estimators_values
     max_depth_values = args.max_depth_values
+    threshold_values = args.threshold_values
     
     print(f"Left window values: {left_windows}")
     print(f"Right window values: {right_windows}")
     print(f"Number of estimators values: {n_estimators_values}")
     print(f"Max depth values: {max_depth_values}")
+    print(f"Threshold values: {threshold_values}")
     
     best_metrics = None
     best_params = None
@@ -72,7 +76,8 @@ def handle_best_model(args) -> int:
     
     # Try all parameter combinations
     total_combinations = (len(left_windows) * len(right_windows) * 
-                          len(n_estimators_values) * len(max_depth_values))
+                          len(n_estimators_values) * len(max_depth_values) *
+                          len(threshold_values))
     print(f"Total parameter combinations: {total_combinations}")
     
     current_combination = 0
@@ -81,58 +86,62 @@ def handle_best_model(args) -> int:
         for right_window in right_windows:
             for n_estimators in n_estimators_values:
                 for max_depth in max_depth_values:
-                    current_combination += 1
-                    
-                    print(f"\nCombination {current_combination}/{total_combinations}:")
-                    print(f"  Left window: {left_window}")
-                    print(f"  Right window: {right_window}")
-                    print(f"  N estimators: {n_estimators}")
-                    print(f"  Max depth: {max_depth}")
-                    
-                    # Create and train segmenter
-                    segmenter = TextSegmenter()
-                    
-                    model_params = {
-                        "n_estimators": n_estimators,
-                        "max_depth": max_depth,
-                    }
-                    
-                    try:
-                        metrics = segmenter.train(
-                            data=args.data,
-                            model_params=model_params,
-                            sample_rate=args.sample_rate,
-                            max_samples=args.max_samples,
-                            left_window=left_window,
-                            right_window=right_window,
-                        )
+                    for threshold in threshold_values:
+                        current_combination += 1
                         
-                        # Evaluate on validation data if provided
-                        if args.validation:
-                            metrics = segmenter.evaluate(
-                                data=args.validation,
+                        print(f"\nCombination {current_combination}/{total_combinations}:")
+                        print(f"  Left window: {left_window}")
+                        print(f"  Right window: {right_window}")
+                        print(f"  N estimators: {n_estimators}")
+                        print(f"  Max depth: {max_depth}")
+                        print(f"  Threshold: {threshold}")
+                    
+                        # Create and train segmenter
+                        segmenter = TextSegmenter()
+                        
+                        model_params = {
+                            "n_estimators": n_estimators,
+                            "max_depth": max_depth,
+                        }
+                        
+                        try:
+                            metrics = segmenter.train(
+                                data=args.data,
+                                model_params=model_params,
+                                sample_rate=args.sample_rate,
                                 max_samples=args.max_samples,
+                                left_window=left_window,
+                                right_window=right_window,
+                                threshold=threshold,
                             )
-                        
-                        print(f"  Accuracy: {metrics.get('accuracy', 0):.4f}")
-                        print(f"  F1-score: {metrics.get('f1_score', 0):.4f}")
-                        
-                        # Track best model
-                        if (best_metrics is None or 
-                            metrics.get('f1_score', 0) > best_metrics.get('f1_score', 0)):
-                            best_metrics = metrics
-                            best_params = {
-                                "left_window": left_window,
-                                "right_window": right_window,
-                                "n_estimators": n_estimators,
-                                "max_depth": max_depth,
-                            }
-                            best_segmenter = segmenter
                             
-                            print("  New best model!")
-                    
-                    except Exception as e:
-                        print(f"  Error training model: {e}")
+                            # Evaluate on validation data if provided
+                            if args.validation:
+                                metrics = segmenter.evaluate(
+                                    data=args.validation,
+                                    max_samples=args.max_samples,
+                                )
+                            
+                            print(f"  Accuracy: {metrics.get('accuracy', 0):.4f}")
+                            print(f"  F1-score: {metrics.get('f1_score', 0):.4f}")
+                            
+                            # Track best model
+                            if (best_metrics is None or 
+                                metrics.get('f1_score', 0) > best_metrics.get('f1_score', 0)):
+                                best_metrics = metrics
+                                best_params = {
+                                    "left_window": left_window,
+                                    "right_window": right_window,
+                                    "n_estimators": n_estimators,
+                                    "max_depth": max_depth,
+                                    "threshold": threshold,
+                                }
+                                best_segmenter = segmenter
+                                
+                                print("  New best model!")
+                                
+                        except Exception as e:
+                            print(f"  Error training model: {e}")
     
     # Save the best model
     if best_segmenter:

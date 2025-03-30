@@ -28,8 +28,8 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["charboundary"]
-package-data = {"charboundary.resources" = ["*.json", "*.skops", "*.skops.xz", "*.skops.lzma"]}
+packages = ["charboundary", "charboundary.resources", "charboundary.cli"]
+package-data = {"charboundary.resources" = ["*.json", "small_model.skops.xz", "medium_model.skops.xz"]}
 
 [project.scripts]
 charboundary = "charboundary:cli"

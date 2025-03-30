@@ -69,6 +69,7 @@ class SegmenterConfig:
         "n_jobs": -1,
         "class_weight": "balanced"
     })
+    threshold: float = 0.5  # Probability threshold for classification
     use_numpy: bool = True
     cache_size: int = 1024
     num_workers: int = 0  # Auto-detect
@@ -149,6 +150,7 @@ class TextSegmenter:
             left_window: Optional[int] = None,
             right_window: Optional[int] = None,
             num_workers: Optional[int] = None,
+            threshold: Optional[float] = None,
     ) -> MetricsResult:
         """
         Train a new model for text segmentation.
@@ -171,6 +173,10 @@ class TextSegmenter:
                 If None, use the value from config.
             num_workers (int, optional): Number of worker processes for parallel processing.
                 If None, use the value from config.
+            threshold (float, optional): Probability threshold for classification (0.0-1.0).
+                Values below 0.5 favor recall (fewer false negatives),
+                values above 0.5 favor precision (fewer false positives).
+                Defaults to None (which means 0.5).
 
         Returns:
             MetricsResult: Training metrics
@@ -186,6 +192,8 @@ class TextSegmenter:
             self.config.model_type = model_type
         if model_params is not None:
             self.config.model_params.update(model_params)
+        if threshold is not None:
+            self.config.threshold = threshold
 
         features: FeatureMatrix = []
         labels: PositionLabels = []
@@ -223,7 +231,8 @@ class TextSegmenter:
         
         # Create and train the model
         self.model = create_model(
-            model_type=self.config.model_type, 
+            model_type=self.config.model_type,
+            threshold=self.config.threshold,
             **(self.config.model_params)
         )
         
@@ -598,18 +607,26 @@ class TextSegmenter:
 
         return segmenter
 
-    def segment_text(self, text: str) -> str:
+    def segment_text(self, text: str, threshold: Optional[float] = None) -> str:
         """
         Segment text into sentences and paragraphs.
 
         Args:
             text (str): Text to segment
+            threshold (float, optional): Probability threshold for classification (0.0-1.0).
+                                        Values below 0.5 favor recall (fewer false negatives),
+                                        values above 0.5 favor precision (fewer false positives).
+                                        If None, use the model's default threshold.
+                                        Defaults to None.
 
         Returns:
             str: Text with sentence and paragraph annotations
         """
         if not self.is_trained:
             raise ValueError("Model has not been trained yet.")
+
+        # Use the model's threshold if none is provided
+        threshold_to_use = threshold if threshold is not None else self.config.threshold
 
         # Extract features for terminal characters only
         terminal_indices = []
@@ -625,7 +642,7 @@ class TextSegmenter:
                 
         # Only predict for terminal characters
         if terminal_features:
-            predictions = self.model.predict(terminal_features)
+            predictions = self.model.predict(terminal_features, threshold=threshold_to_use)
         else:
             predictions = []
             
@@ -734,7 +751,7 @@ class TextSegmenter:
             # Move to the next chunk, accounting for any boundaries we found
             position = chunk_end
 
-    def segment_to_sentences(self, text: str, streaming: bool = False) -> List[str]:
+    def segment_to_sentences(self, text: str, streaming: bool = False, threshold: Optional[float] = None) -> List[str]:
         """
         Segment text into a list of sentences.
 
@@ -742,17 +759,23 @@ class TextSegmenter:
             text (str): Text to segment
             streaming (bool, optional): Whether to use streaming mode for memory efficiency.
                                        Defaults to False.
+            threshold (float, optional): Probability threshold for classification (0.0-1.0).
+                                        Values below 0.5 favor recall (fewer false negatives),
+                                        values above 0.5 favor precision (fewer false positives).
+                                        If None, use the model's default threshold.
+                                        Defaults to None.
 
         Returns:
             List[str]: List of sentences
         """
         if streaming and len(text) > 10000:
             # For large texts, use streaming segmentation
+            # Note: streaming mode doesn't currently support custom threshold
             segmented_parts = list(self.segment_text_streaming(text))
             segmented_text = ''.join(segmented_parts)
         else:
             # For smaller texts, use regular segmentation
-            segmented_text = self.segment_text(text)
+            segmented_text = self.segment_text(text, threshold=threshold)
             
         sentences = []
         current_sentence = []
@@ -781,7 +804,7 @@ class TextSegmenter:
         # Ensure each sentence is properly cleaned
         return [s.strip() for s in sentences if s.strip()]
 
-    def segment_to_paragraphs(self, text: str, streaming: bool = False) -> List[str]:
+    def segment_to_paragraphs(self, text: str, streaming: bool = False, threshold: Optional[float] = None) -> List[str]:
         """
         Segment text into a list of paragraphs.
 
@@ -789,17 +812,23 @@ class TextSegmenter:
             text (str): Text to segment
             streaming (bool, optional): Whether to use streaming mode for memory efficiency.
                                        Defaults to False.
+            threshold (float, optional): Probability threshold for classification (0.0-1.0).
+                                        Values below 0.5 favor recall (fewer false negatives),
+                                        values above 0.5 favor precision (fewer false positives).
+                                        If None, use the model's default threshold.
+                                        Defaults to None.
 
         Returns:
             List[str]: List of paragraphs
         """
         if streaming and len(text) > 10000:
             # For large texts, use streaming segmentation
+            # Note: streaming mode doesn't currently support custom threshold
             segmented_parts = list(self.segment_text_streaming(text))
             segmented_text = ''.join(segmented_parts)
         else:
             # For smaller texts, use regular segmentation
-            segmented_text = self.segment_text(text)
+            segmented_text = self.segment_text(text, threshold=threshold)
             
         paragraphs = []
         current_paragraph = []

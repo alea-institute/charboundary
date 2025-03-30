@@ -27,11 +27,13 @@ pip install charboundary[numpy]
 
 ### Using the Pre-trained Models
 
-CharBoundary comes with three pre-trained models of different sizes:
+CharBoundary comes with pre-trained models of different sizes:
 
 - **Small** - Fast with a small footprint (5 token context window, 64 trees)
-- **Medium** - Default, balanced performance (7 token context window, 128 trees)
+- **Medium** - Default, balanced performance (7 token context window, 128 trees) 
 - **Large** - Most accurate but larger and slower (9 token context window, 512 trees)
+
+> **Note:** The small and medium models are included in the package distribution. The large model is not included by default to keep the package size reasonable, but can be downloaded separately from the project repository.
 
 ```python
 from charboundary import get_default_segmenter
@@ -208,6 +210,34 @@ segmenter.remove_abbreviation("Dr.")
 
 # Set a new list of abbreviations
 segmenter.set_abbreviations(["Dr.", "Mr.", "Prof.", "Ph.D."])
+```
+
+## Command-Line Interface
+
+CharBoundary provides a command-line interface for common operations:
+
+```bash
+# Get help
+charboundary --help
+
+# Analyze text using the default model
+charboundary analyze --text "This is a test. This is another sentence." --output sentences
+
+# Train a custom model
+charboundary train --input training_data.jsonl --output model.skops
+
+# Find the best model parameters
+charboundary best-model --input training_data.jsonl --test test_data.jsonl
+```
+
+The CLI can be installed using either `pip` or `pipx`:
+
+```bash
+# Install globally as an application
+pipx install charboundary
+
+# Or use within a project
+pip install charboundary
 ```
 
 ## License

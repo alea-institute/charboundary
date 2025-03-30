@@ -44,10 +44,18 @@ segmenter = get_default_segmenter()
 # Segment text into sentences and paragraphs
 text = "Hello, world! This is a test. This is another sentence."
 
-# Get list of sentences
+# Get list of sentences (with default threshold)
 sentences = segmenter.segment_to_sentences(text)
 print(sentences)
 # Output: ["Hello, world!", "This is a test.", "This is another sentence."]
+
+# Control segmentation sensitivity with threshold parameter
+# Lower threshold = more aggressive segmentation (higher recall)
+high_recall_sentences = segmenter.segment_to_sentences(text, threshold=0.3)
+# Default threshold = balanced approach
+balanced_sentences = segmenter.segment_to_sentences(text, threshold=0.5)
+# Higher threshold = conservative segmentation (higher precision)
+high_precision_sentences = segmenter.segment_to_sentences(text, threshold=0.8)
 
 # Get list of paragraphs
 paragraphs = segmenter.segment_to_paragraphs(text)
@@ -161,6 +169,8 @@ config = SegmenterConfig(
         "max_depth": 16,
         "class_weight": "balanced"
     },
+    threshold=0.5,             # Probability threshold for classification (0.0-1.0)
+                               # Lower values favor recall, higher values favor precision
     use_numpy=True,            # Use NumPy for faster processing
     cache_size=1024,           # Cache size for character encoding
     num_workers=4              # Number of worker processes
@@ -217,17 +227,118 @@ segmenter.set_abbreviations(["Dr.", "Mr.", "Prof.", "Ph.D."])
 CharBoundary provides a command-line interface for common operations:
 
 ```bash
-# Get help
+# Get help for all commands
 charboundary --help
 
-# Analyze text using the default model
-charboundary analyze --text "This is a test. This is another sentence." --output sentences
+# Get help for a specific command
+charboundary analyze --help
+charboundary train --help
+charboundary best-model --help
+```
 
-# Train a custom model
-charboundary train --input training_data.jsonl --output model.skops
+### Analyze Command
 
-# Find the best model parameters
-charboundary best-model --input training_data.jsonl --test test_data.jsonl
+Process text using a trained model:
+
+```bash
+# Analyze with default annotated output
+charboundary analyze --model charboundary/resources/small_model.skops.xz --input input.txt
+
+# Output sentences (one per line)
+charboundary analyze --model charboundary/resources/small_model.skops.xz --input input.txt --format sentences
+
+# Output paragraphs
+charboundary analyze --model charboundary/resources/small_model.skops.xz --input input.txt --format paragraphs
+
+# Save output to a file and generate metrics
+charboundary analyze --model charboundary/resources/small_model.skops.xz --input input.txt --output segmented.txt --metrics metrics.json
+
+# Adjust segmentation sensitivity using threshold
+charboundary analyze --model charboundary/resources/small_model.skops.xz --input input.txt --threshold 0.3  # More sensitive (higher recall)
+charboundary analyze --model charboundary/resources/small_model.skops.xz --input input.txt --threshold 0.5  # Default balance
+charboundary analyze --model charboundary/resources/small_model.skops.xz --input input.txt --threshold 0.8  # More conservative (higher precision)
+```
+
+#### Threshold Calibration Example
+
+The threshold parameter lets you control the trade-off between Type I errors (false positives) and Type II errors (false negatives):
+
+```bash
+# Create a test file
+echo "The plaintiff, Mr. Brown vs. Johnson Corp., argued that patent no. 12345 was infringed. Dr. Smith provided expert testimony on Feb. 2nd." > legal_text.txt
+
+# Low threshold (0.2) - High recall, more boundaries detected
+charboundary analyze --model charboundary/resources/small_model.skops.xz --input legal_text.txt --format sentences --threshold 0.2
+```
+
+Output with low threshold (0.2):
+```
+The plaintiff, Mr.
+Brown vs.
+Johnson Corp.
+, argued that patent no.
+12345 was infringed.
+Dr.
+Smith provided expert testimony on Feb.
+2nd.
+```
+
+```bash
+# Default threshold (0.5) - Balanced approach
+charboundary analyze --model charboundary/resources/small_model.skops.xz --input legal_text.txt --format sentences --threshold 0.5
+```
+
+Output with default threshold (0.5):
+```
+The plaintiff, Mr. Brown vs. Johnson Corp., argued that patent no. 12345 was infringed.
+Dr. Smith provided expert testimony on Feb.
+2nd.
+```
+
+```bash
+# High threshold (0.8) - High precision, only confident boundaries
+charboundary analyze --model charboundary/resources/small_model.skops.xz --input legal_text.txt --format sentences --threshold 0.8
+```
+
+Output with high threshold (0.8):
+```
+The plaintiff, Mr. Brown vs. Johnson Corp., argued that patent no. 12345 was infringed.
+Dr. Smith provided expert testimony on Feb. 2nd.
+```
+
+### Train Command
+
+Train a custom model on annotated data:
+
+```bash
+# Train with default parameters
+charboundary train --data training_data.txt --output model.skops
+
+# Train with custom parameters
+charboundary train --data training_data.txt --output model.skops \
+  --left-window 4 --right-window 6 --n-estimators 100 --max-depth 16 \
+  --sample-rate 0.1 --max-samples 10000 --threshold 0.5 --metrics-file train_metrics.json
+```
+
+Training data should contain annotated text with `<|sentence|>` and `<|paragraph|>` markers.
+
+### Best-Model Command
+
+Find the best model parameters by training multiple models:
+
+```bash
+# Find best model with default parameter ranges
+charboundary best-model --data training_data.txt --output best_model.skops
+
+# Customize parameter search space
+charboundary best-model --data training_data.txt --output best_model.skops \
+  --left-window-values 3 5 7 --right-window-values 3 5 7 \
+  --n-estimators-values 50 100 200 --max-depth-values 8 16 24 \
+  --threshold-values 0.3 0.5 0.7 --sample-rate 0.1 --max-samples 10000
+
+# Use validation data for model selection
+charboundary best-model --data training_data.txt --output best_model.skops \
+  --validation validation_data.txt --metrics-file best_metrics.json
 ```
 
 The CLI can be installed using either `pip` or `pipx`:

@@ -1,0 +1,70 @@
+[project]
+name = "charboundary"
+version = "0.1.0"
+description = "Fast character-based boundary detection for sentence and paragraphs"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [
+    { name = "ALEA Institute", email = "hello@aleainstitute.ai" }
+]
+dependencies = [
+    "scikit-learn>=1.3.0",
+    "tqdm>=4.67.1",
+    "skops>=0.9.0",
+]
+
+[project.optional-dependencies]
+numpy = [
+    "numpy>=1.23.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-benchmark>=4.0.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "isort>=5.10.0",
+    "mypy>=1.5.0",
+]
+
+[tool.setuptools]
+packages = ["charboundary"]
+package-data = {"charboundary.resources" = ["*.json", "*.skops", "*.skops.xz", "*.skops.lzma"]}
+
+[project.scripts]
+charboundary = "charboundary:cli"
+
+[build-system]
+requires = ["setuptools>=42.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+addopts = "--cov=charboundary --cov-report=term --cov-report=html --benchmark-skip"
+
+[tool.pytest.ini_options.benchmark]
+warmup = "auto"
+warmup_iterations = 5
+min_rounds = 10
+max_time = 2.0
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+python_version = 3.11
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true

@@ -39,8 +39,8 @@ def train_default_model():
     metrics = segmenter.train(
         data=training_data_path,
         model_params={
-            "n_estimators": 512,
-            "max_depth": 64,
+            "n_estimators": 64,
+            "max_depth": 32,
             "min_samples_split": 8,
             "min_samples_leaf": 4,
             "n_jobs": -1,

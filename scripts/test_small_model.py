@@ -164,6 +164,46 @@ def test_small_model() -> Tuple[int, int]:
     for i, sentence in enumerate(example_sentences):
         print(f"    {i+1}. {sentence}")
     
+    # Add performance benchmark
+    print("\nBenchmarking processing speed...")
+    
+    # Generate a large text sample by repeating the README sample
+    sample_text = """
+    Employee also specifically and forever releases the Acme Inc. (Company) and the Company Parties (except where and 
+    to the extent that such a release is expressly prohibited or made void by law) from any claims based on unlawful 
+    employment discrimination or harassment, including, but not limited to, the Federal Age Discrimination in 
+    Employment Act (29 U.S.C. § 621 et. seq.). This release does not include Employee's right to indemnification, 
+    and related insurance coverage, under Sec. 7.1.4 or Ex. 1-1 of the Employment Agreement, his right to equity awards,
+    or continued exercise, pursuant to the terms of any specific equity award (or similar) agreement between 
+    Employee and the Company nor to Employee's right to benefits under any Company plan or program in which
+    Employee participated and is due a benefit in accordance with the terms of the plan or program as of the Effective
+    Date and ending at 11:59 p.m. Eastern Time on Sep. 15, 2013.
+    """
+    
+    # Repeat the sample to create a larger text
+    large_text = sample_text * 1000
+    total_chars = len(large_text)
+    
+    # Measure processing time
+    print(f"Processing a text with {total_chars:,} characters...")
+    start_time = time.time()
+    sentences = segmenter.segment_to_sentences(large_text)
+    end_time = time.time()
+    processing_time = end_time - start_time
+    
+    # Calculate statistics
+    chars_per_second = int(total_chars / processing_time)
+    avg_sentence_length = total_chars / len(sentences) if sentences else 0
+    
+    # Print performance results
+    print("\nPerformance Results:")
+    print(f"  Documents processed:      1")
+    print(f"  Total characters:         {total_chars:,}")
+    print(f"  Total sentences found:    {len(sentences):,}")
+    print(f"  Processing time:          {processing_time:.2f} seconds")
+    print(f"  Processing speed:         {chars_per_second:,} characters/second")
+    print(f"  Average sentence length:  {avg_sentence_length:.1f} characters")
+    
     return successes, failures
 
 

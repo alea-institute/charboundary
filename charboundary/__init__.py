@@ -6,22 +6,6 @@ import os
 import json
 import sys
 
-# Load legal abbreviations from JSON file and populate the constant
-try:
-    legal_abbreviations_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), 
-        "resources", 
-        "legal_abbreviations.json"
-    )
-    if os.path.exists(legal_abbreviations_path):
-        with open(legal_abbreviations_path, 'r') as f:
-            legal_abbrs = json.load(f)
-            # Import and update the constants module
-            from charboundary.constants import LEGAL_ABBREVIATIONS
-            LEGAL_ABBREVIATIONS.extend(legal_abbrs)
-except Exception as e:
-    print(f"Warning: Failed to load legal abbreviations: {e}")
-
 # Import directly from submodules
 from charboundary.constants import (
     SENTENCE_TAG,
@@ -177,4 +161,4 @@ def get_large_segmenter() -> TextSegmenter:
     raise RuntimeError(f"Failed to load large model. Last error: {last_error if last_error else 'No valid model paths found'}")
 
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

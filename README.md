@@ -2,13 +2,18 @@
 
 A modular library for segmenting text into sentences and paragraphs based on character-level features.
 
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+![Python Versions](https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue)
+![Version](https://img.shields.io/badge/version-0.3.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 ## Features
 
 - Character-level text segmentation
 - Support for sentence and paragraph boundaries
 - Customizable window sizes for context
 - Support for abbreviations
-- Optimized for both accuracy and performance
+- Highly optimized performance (up to 280,000 characters/second)
 - Secure model serialization with skops
 
 ## Installation
@@ -29,9 +34,9 @@ pip install charboundary[numpy]
 
 CharBoundary comes with pre-trained models of different sizes:
 
-- **Small** - Fast with a small footprint (5 token context window, 64 trees)
-- **Medium** - Default, balanced performance (7 token context window, 128 trees) 
-- **Large** - Most accurate but larger and slower (9 token context window, 512 trees)
+- **Small** - Small footprint (5 token context window, 32 trees) - Processes ~85,000 characters/second
+- **Medium** - Default, best performance (7 token context window, 64 trees) - Processes ~280,000 characters/second
+- **Large** - Most accurate (9 token context window, 128 trees) - Processes ~175,000 characters/second
 
 > **Note:** The small and medium models are included in the package distribution. The large model is not included by default to keep the package size reasonable, but can be downloaded separately from the project repository.
 
@@ -400,6 +405,39 @@ python scripts/profile_model.py --mode load --model charboundary/resources/mediu
 # Save profiling results to a file
 python scripts/profile_model.py --output profile_results.txt
 ```
+
+## Performance
+
+The library is highly optimized for performance while maintaining accuracy. The medium model offers the best balance of speed and accuracy:
+
+```
+Performance Results:
+  Documents processed:      1
+  Total characters:         991,000
+  Total sentences found:    2,000
+  Processing time:          3.53 seconds
+  Processing speed:         280,000 characters/second
+  Average sentence length:  495.5 characters
+```
+
+Key optimizations:
+- Direct file path handling for resource loading
+- Frozensets for character testing
+- Pre-allocated arrays with proper types
+- Character n-gram caching
+- Pattern hash for common text patterns
+- Prediction caching for repeated segments
+
+You can run the benchmark tests yourself with the included scripts:
+```bash
+python scripts/test_small_model.py
+python scripts/test_medium_model.py
+python scripts/test_large_model.py
+```
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the project history and version details.
 
 ## License
 

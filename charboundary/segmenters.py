@@ -73,6 +73,11 @@ class SegmenterConfig:
     use_numpy: bool = True
     cache_size: int = 1024
     num_workers: int = 0  # Auto-detect
+    
+    # Feature selection parameters
+    use_feature_selection: bool = False
+    feature_selection_threshold: float = 0.01
+    max_features: Optional[int] = None
 
 
 class TextSegmenterProtocol(Protocol):
@@ -104,6 +109,17 @@ class TextSegmenter:
     High-level interface for training, saving, loading, and using text segmentation models.
     
     This simplified implementation only supports binary classification (boundary/non-boundary).
+    
+    Key features:
+    - Character-level text segmentation
+    - Support for sentence and paragraph boundaries
+    - Customizable window sizes for context
+    - Support for feature selection to improve performance
+    - Trained using RandomForest classifiers
+    
+    The segmenter can be used with default parameters or customized for specific needs
+    through the configuration parameters, including window sizes, model parameters,
+    and feature selection options.
     """
 
     def __init__(
@@ -151,6 +167,9 @@ class TextSegmenter:
             right_window: Optional[int] = None,
             num_workers: Optional[int] = None,
             threshold: Optional[float] = None,
+            use_feature_selection: bool = False,
+            feature_selection_threshold: float = 0.01,
+            max_features: Optional[int] = None,
     ) -> MetricsResult:
         """
         Train a new model for text segmentation.
@@ -177,6 +196,17 @@ class TextSegmenter:
                 Values below 0.5 favor recall (fewer false negatives),
                 values above 0.5 favor precision (fewer false positives).
                 Defaults to None (which means 0.5).
+            use_feature_selection (bool, optional): Whether to use feature selection.
+                If True, selects important features and retrains the model.
+                Defaults to False.
+            feature_selection_threshold (float, optional): Importance threshold for selecting features.
+                Features with importance below this threshold will be filtered out.
+                Only used if use_feature_selection is True.
+                Defaults to 0.01.
+            max_features (int, optional): Maximum number of features to select.
+                If None, use all features above the threshold.
+                Only used if use_feature_selection is True.
+                Defaults to None.
 
         Returns:
             MetricsResult: Training metrics
@@ -194,6 +224,11 @@ class TextSegmenter:
             self.config.model_params.update(model_params)
         if threshold is not None:
             self.config.threshold = threshold
+            
+        # Store feature selection settings
+        self.config.use_feature_selection = use_feature_selection
+        self.config.feature_selection_threshold = feature_selection_threshold
+        self.config.max_features = max_features
 
         features: FeatureMatrix = []
         labels: PositionLabels = []
@@ -230,11 +265,23 @@ class TextSegmenter:
                 self._process_text_for_training(text, features, labels, sample_rate)
         
         # Create and train the model
-        self.model = create_model(
-            model_type=self.config.model_type,
-            threshold=self.config.threshold,
-            **(self.config.model_params)
-        )
+        if self.config.use_feature_selection:
+            # Use feature selection model
+            print(f"Using feature selection with threshold {self.config.feature_selection_threshold}")
+            self.model = create_model(
+                model_type="feature_selected_rf",
+                threshold=self.config.threshold,
+                feature_selection_threshold=self.config.feature_selection_threshold,
+                max_features=self.config.max_features,
+                **(self.config.model_params)
+            )
+        else:
+            # Use regular model
+            self.model = create_model(
+                model_type=self.config.model_type,
+                threshold=self.config.threshold,
+                **(self.config.model_params)
+            )
         
         # Print debug info about the training data
         print(f"Training on {len(features)} samples...")
@@ -246,6 +293,26 @@ class TextSegmenter:
         # Fit the model
         self.model.fit(X=features, y=labels)
         self.is_trained = True
+        
+        # Print feature selection info if available
+        if self.config.use_feature_selection and hasattr(self.model, 'get_feature_importances'):
+            feature_info = self.model.get_feature_importances()
+            orig_features = feature_info.get("original_num_features", 0)
+            selected_features = feature_info.get("selected_num_features", 0)
+            
+            if orig_features > 0:
+                print(f"Feature selection reduced dimensions from {orig_features} to {selected_features} features "
+                      f"({selected_features/orig_features:.1%} of original)")
+                
+                # Print top 10 most important features
+                if "selected_indices" in feature_info and "original_importances" in feature_info:
+                    indices = feature_info["selected_indices"][:10]  # Get top 10
+                    importances = feature_info["original_importances"]
+                    
+                    print("\nTop 10 most important features:")
+                    for i, idx in enumerate(indices, 1):
+                        print(f"  {i}. Feature {idx}: importance={importances[idx]:.4f}")
+                    print("")
 
         # Evaluate on training data
         report = self.model.get_metrics(features, labels)

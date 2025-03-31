@@ -318,9 +318,27 @@ charboundary train --data training_data.txt --output model.skops
 charboundary train --data training_data.txt --output model.skops \
   --left-window 4 --right-window 6 --n-estimators 100 --max-depth 16 \
   --sample-rate 0.1 --max-samples 10000 --threshold 0.5 --metrics-file train_metrics.json
+
+# Train with feature selection to improve performance
+charboundary train --data training_data.txt --output model.skops \
+  --use-feature-selection --feature-selection-threshold 0.01 --max-features 50
 ```
 
 Training data should contain annotated text with `<|sentence|>` and `<|paragraph|>` markers.
+
+#### Feature Selection
+
+The library supports automatic feature selection during training, which can improve both accuracy and inference speed:
+
+- **Basic Feature Selection**: Use `--use-feature-selection` to enable automatic feature selection
+- **Threshold Selection**: Set importance threshold with `--feature-selection-threshold` (default: 0.01)
+- **Maximum Features**: Limit the number of features with `--max-features`
+
+Feature selection works in two stages:
+1. First, it trains an initial model to identify feature importance
+2. Then, it filters out less important features and retrains using only the selected features
+
+This can significantly reduce model complexity while maintaining or even improving accuracy, especially for deployment on resource-constrained environments.
 
 ### Best-Model Command
 

@@ -1,0 +1,114 @@
+==================================================
+LOAD PROFILE
+==================================================
+         392270 function calls (366057 primitive calls) in 0.322 seconds
+
+   Ordered by: cumulative time
+   List reduced from 331 to 25 due to restriction <25>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.003    0.003    0.322    0.322 /home/mjbommar/PycharmProjects/charboundary/charboundary/segmenters.py:382(load)
+        1    0.000    0.000    0.134    0.134 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/skops/io/_persist.py:116(load)
+        1    0.000    0.000    0.091    0.091 /home/mjbommar/.local/share/uv/python/cpython-3.11.11-linux-x86_64-gnu/lib/python3.11/lzma.py:331(decompress)
+        1    0.091    0.091    0.091    0.091 {method 'decompress' of '_lzma.LZMADecompressor' objects}
+        1    0.000    0.000    0.091    0.091 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/skops/io/_persist.py:197(get_untrusted_types)
+   9408/2    0.009    0.000    0.085    0.043 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/skops/io/_audit.py:302(get_tree)
+    272/2    0.001    0.000    0.085    0.043 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/skops/io/_general.py:61(__init__)
+    272/2    0.002    0.000    0.085    0.042 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/skops/io/_general.py:71(<dictcomp>)
+    136/4    0.000    0.000    0.078    0.019 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/skops/io/_general.py:431(__init__)
+   276/20    0.001    0.000    0.077    0.004 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/skops/io/_general.py:137(__init__)
+   276/20    0.001    0.000    0.077    0.004 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/skops/io/_general.py:146(<listcomp>)
+   5850/2    0.020    0.000    0.068    0.034 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/skops/io/_audit.py:209(get_unsafe_set)
+   4704/1    0.001    0.000    0.046    0.046 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/skops/io/_audit.py:158(construct)
+    136/1    0.002    0.000    0.045    0.045 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/skops/io/_general.py:77(_construct)
+     68/2    0.000    0.000    0.044    0.022 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/skops/io/_general.py:449(_construct)
+   138/10    0.000    0.000    0.043    0.004 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/skops/io/_general.py:152(_construct)
+   138/10    0.001    0.000    0.043    0.004 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/skops/io/_general.py:154(<listcomp>)
+      128    0.000    0.000    0.042    0.000 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/skops/io/_sklearn.py:212(__init__)
+      642    0.002    0.000    0.041    0.000 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/skops/io/_numpy.py:60(__init__)
+      128    0.001    0.000    0.041    0.000 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/skops/io/_sklearn.py:152(__init__)
+      644    0.001    0.000    0.034    0.000 /home/mjbommar/.local/share/uv/python/cpython-3.11.11-linux-x86_64-gnu/lib/python3.11/zipfile.py:1525(read)
+        1    0.000    0.000    0.034    0.034 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/skops/io/_audit.py:42(audit_tree)
+      321    0.001    0.000    0.034    0.000 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/skops/io/_numpy.py:85(_construct)
+      321    0.002    0.000    0.032    0.000 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/numpy/lib/_npyio_impl.py:308(load)
+      321    0.004    0.000    0.029    0.000 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/numpy/lib/format.py:762(read_array)
+
+
+
+
+==================================================
+TRAIN PROFILE
+==================================================
+         1190291 function calls (1187474 primitive calls) in 0.569 seconds
+
+   Ordered by: cumulative time
+   List reduced from 698 to 25 due to restriction <25>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.569    0.569 /home/mjbommar/PycharmProjects/charboundary/charboundary/segmenters.py:143(train)
+        6    0.002    0.000    0.292    0.049 /home/mjbommar/PycharmProjects/charboundary/charboundary/segmenters.py:255(_process_text_for_training)
+        6    0.000    0.000    0.289    0.048 /home/mjbommar/PycharmProjects/charboundary/charboundary/features.py:540(process_annotated_text)
+        6    0.000    0.000    0.287    0.048 /home/mjbommar/PycharmProjects/charboundary/charboundary/features.py:310(get_char_features)
+        6    0.010    0.002    0.287    0.048 /home/mjbommar/PycharmProjects/charboundary/charboundary/features.py:421(_get_char_features_numpy)
+        6    0.001    0.000    0.262    0.044 /home/mjbommar/PycharmProjects/charboundary/charboundary/features.py:454(<listcomp>)
+     2783    0.184    0.000    0.261    0.000 /home/mjbommar/PycharmProjects/charboundary/charboundary/features.py:201(_is_in_list_item)
+        1    0.000    0.000    0.193    0.193 /home/mjbommar/PycharmProjects/charboundary/charboundary/models.py:74(fit)
+        1    0.000    0.000    0.193    0.193 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/sklearn/base.py:1372(wrapper)
+        1    0.000    0.000    0.192    0.192 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/sklearn/ensemble/_forest.py:328(fit)
+        2    0.000    0.000    0.154    0.077 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/sklearn/utils/parallel.py:54(__call__)
+        2    0.000    0.000    0.154    0.077 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/joblib/parallel.py:1902(__call__)
+      204    0.000    0.000    0.153    0.001 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/joblib/parallel.py:1638(_get_outputs)
+      145    0.001    0.000    0.140    0.001 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/joblib/parallel.py:1746(_retrieve)
+       12    0.139    0.012    0.139    0.012 {built-in method time.sleep}
+        1    0.000    0.000    0.084    0.084 /home/mjbommar/PycharmProjects/charboundary/charboundary/models.py:124(get_metrics)
+        1    0.000    0.000    0.065    0.065 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/sklearn/ensemble/_forest.py:476(<listcomp>)
+      100    0.000    0.000    0.065    0.001 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/sklearn/ensemble/_base.py:135(_make_estimator)
+      501    0.003    0.000    0.056    0.000 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/sklearn/base.py:231(get_params)
+     23/7    0.001    0.000    0.053    0.008 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/sklearn/utils/_param_validation.py:185(wrapper)
+      501    0.003    0.000    0.052    0.000 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/sklearn/base.py:200(_get_param_names)
+      507    0.000    0.000    0.042    0.000 /home/mjbommar/.local/share/uv/python/cpython-3.11.11-linux-x86_64-gnu/lib/python3.11/inspect.py:3261(signature)
+      507    0.000    0.000    0.042    0.000 /home/mjbommar/.local/share/uv/python/cpython-3.11.11-linux-x86_64-gnu/lib/python3.11/inspect.py:3007(from_callable)
+        7    0.000    0.000    0.042    0.006 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1628(precision_recall_fscore_support)
+      507    0.002    0.000    0.042    0.000 /home/mjbommar/.local/share/uv/python/cpython-3.11.11-linux-x86_64-gnu/lib/python3.11/inspect.py:2435(_signature_from_callable)
+
+
+
+
+==================================================
+INFERENCE PROFILE
+==================================================
+         10779745 function calls (10778505 primitive calls) in 4.174 seconds
+
+   Ordered by: cumulative time
+   List reduced from 356 to 25 due to restriction <25>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+       40    0.003    0.000    4.163    0.104 /home/mjbommar/PycharmProjects/charboundary/charboundary/segmenters.py:610(segment_text)
+      210    0.001    0.000    3.489    0.017 /home/mjbommar/PycharmProjects/charboundary/charboundary/features.py:310(get_char_features)
+      210    0.012    0.000    3.488    0.017 /home/mjbommar/PycharmProjects/charboundary/charboundary/features.py:421(_get_char_features_numpy)
+      210    0.014    0.000    3.335    0.016 /home/mjbommar/PycharmProjects/charboundary/charboundary/features.py:454(<listcomp>)
+    30110    2.359    0.000    3.322    0.000 /home/mjbommar/PycharmProjects/charboundary/charboundary/features.py:201(_is_in_list_item)
+       20    0.004    0.000    2.104    0.105 /home/mjbommar/PycharmProjects/charboundary/charboundary/segmenters.py:754(segment_to_sentences)
+       20    0.005    0.000    2.071    0.104 /home/mjbommar/PycharmProjects/charboundary/charboundary/segmenters.py:807(segment_to_paragraphs)
+       40    0.000    0.000    0.670    0.017 /home/mjbommar/PycharmProjects/charboundary/charboundary/models.py:87(predict)
+       40    0.001    0.000    0.670    0.017 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/sklearn/ensemble/_forest.py:883(predict)
+       40    0.002    0.000    0.668    0.017 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/sklearn/ensemble/_forest.py:922(predict_proba)
+       40    0.000    0.000    0.622    0.016 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/sklearn/utils/parallel.py:54(__call__)
+       40    0.002    0.000    0.622    0.016 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/joblib/parallel.py:1902(__call__)
+     2640    0.004    0.000    0.617    0.000 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/joblib/parallel.py:1638(_get_outputs)
+      247    0.001    0.000    0.450    0.002 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/joblib/parallel.py:1746(_retrieve)
+       44    0.448    0.010    0.448    0.010 {built-in method time.sleep}
+  6311516    0.413    0.000    0.413    0.000 {built-in method builtins.len}
+  2005020    0.276    0.000    0.276    0.000 {method 'endswith' of 'str' objects}
+  2017280    0.273    0.000    0.273    0.000 {method 'startswith' of 'str' objects}
+  960/120    0.000    0.000    0.128    0.001 {built-in method builtins.next}
+       40    0.001    0.000    0.127    0.003 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/joblib/parallel.py:1617(_start)
+      680    0.005    0.000    0.127    0.000 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/joblib/parallel.py:1433(dispatch_one_batch)
+      640    0.002    0.000    0.096    0.000 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/joblib/parallel.py:1388(_dispatch)
+      640    0.001    0.000    0.092    0.000 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/joblib/_parallel_backends.py:270(apply_async)
+      640    0.000    0.000    0.084    0.000 /home/mjbommar/PycharmProjects/charboundary/.venv/lib/python3.11/site-packages/joblib/_parallel_backends.py:431(_get_pool)
+       40    0.000    0.000    0.084    0.002 /home/mjbommar/.local/share/uv/python/cpython-3.11.11-linux-x86_64-gnu/lib/python3.11/multiprocessing/pool.py:929(__init__)
+
+
+
+

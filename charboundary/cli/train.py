@@ -41,6 +41,15 @@ def add_train_args(subparsers) -> None:
                         help="Probability threshold for classification (0.0-1.0). Values below 0.5 favor recall, values above 0.5 favor precision. (default: 0.5)")
     parser.add_argument("--metrics-file", 
                         help="Optional path to save training metrics as JSON")
+    
+    # Feature selection arguments
+    feature_selection_group = parser.add_argument_group("Feature Selection")
+    feature_selection_group.add_argument("--use-feature-selection", action="store_true", 
+                                          help="Use feature selection to identify and use only important features")
+    feature_selection_group.add_argument("--feature-selection-threshold", type=float, default=0.01, 
+                                         help="Importance threshold for feature selection (default: 0.01)")
+    feature_selection_group.add_argument("--max-features", type=int, 
+                                         help="Maximum number of features to select")
 
 
 def handle_train(args) -> int:
@@ -69,6 +78,12 @@ def handle_train(args) -> int:
         "max_depth": args.max_depth,
     }
     
+    # Print feature selection info if enabled
+    if args.use_feature_selection:
+        print(f"Using feature selection with threshold {args.feature_selection_threshold}")
+        if args.max_features:
+            print(f"Maximum features: {args.max_features}")
+    
     metrics = segmenter.train(
         data=args.data,
         model_params=model_params,
@@ -77,6 +92,9 @@ def handle_train(args) -> int:
         left_window=args.left_window,
         right_window=args.right_window,
         threshold=args.threshold,
+        use_feature_selection=args.use_feature_selection,
+        feature_selection_threshold=args.feature_selection_threshold,
+        max_features=args.max_features,
     )
     
     # Calculate training time

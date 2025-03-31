@@ -1,0 +1,72 @@
+{
+  "100": {
+    "segment_text": {
+      "avg_time_ms": 17.569971084594727,
+      "chars_per_second": 5691.5290024398255
+    },
+    "segment_to_sentences": {
+      "avg_time_ms": 16.32709503173828,
+      "chars_per_second": 6124.788261819371
+    },
+    "segment_to_paragraphs": {
+      "avg_time_ms": 16.137123107910156,
+      "chars_per_second": 6196.891436676319
+    }
+  },
+  "500": {
+    "segment_text": {
+      "avg_time_ms": 17.861127853393555,
+      "chars_per_second": 27993.752919975974
+    },
+    "segment_to_sentences": {
+      "avg_time_ms": 17.54770278930664,
+      "chars_per_second": 28493.758186096817
+    },
+    "segment_to_paragraphs": {
+      "avg_time_ms": 17.27437973022461,
+      "chars_per_second": 28944.599331989953
+    }
+  },
+  "1000": {
+    "segment_text": {
+      "avg_time_ms": 20.33700942993164,
+      "chars_per_second": 49171.438084117624
+    },
+    "segment_to_sentences": {
+      "avg_time_ms": 20.35694122314453,
+      "chars_per_second": 49123.29357531692
+    },
+    "segment_to_paragraphs": {
+      "avg_time_ms": 20.100927352905273,
+      "chars_per_second": 49748.94851582386
+    }
+  },
+  "5000": {
+    "segment_text": {
+      "avg_time_ms": 36.84496879577637,
+      "chars_per_second": 135703.73821494897
+    },
+    "segment_to_sentences": {
+      "avg_time_ms": 28.383493423461914,
+      "chars_per_second": 176158.7245587951
+    },
+    "segment_to_paragraphs": {
+      "avg_time_ms": 36.52453422546387,
+      "chars_per_second": 136894.28506152288
+    }
+  },
+  "10000": {
+    "segment_text": {
+      "avg_time_ms": 47.8818416595459,
+      "chars_per_second": 208847.4388914062
+    },
+    "segment_to_sentences": {
+      "avg_time_ms": 55.56964874267578,
+      "chars_per_second": 179954.34965419004
+    },
+    "segment_to_paragraphs": {
+      "avg_time_ms": 53.57980728149414,
+      "chars_per_second": 186637.47608241
+    }
+  }
+}

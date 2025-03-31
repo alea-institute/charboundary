@@ -126,10 +126,14 @@ def get_large_segmenter() -> TextSegmenter:
     The large model has the highest accuracy but also the largest memory footprint
     and may be slower for inference than the small or medium models.
     
+    If the large model is not available locally, this function will attempt to download it
+    from the GitHub repository.
+    
     Returns:
         TextSegmenter: A pre-trained text segmenter using the large model
     """
     # Import needed types
+    import urllib.request
     from charboundary.models import BinaryRandomForestModel
     from charboundary.segmenters import SegmenterConfig
     from skops.io import get_untrusted_types
@@ -157,8 +161,36 @@ def get_large_segmenter() -> TextSegmenter:
             except Exception as e:
                 last_error = e
     
-    # If we get here, no paths worked
-    raise RuntimeError(f"Failed to load large model. Last error: {last_error if last_error else 'No valid model paths found'}")
+    # If no local model found, try to download it
+    print("Large model not found locally. Attempting to download from GitHub...")
+    try:
+        # Define GitHub URL for the compressed model
+        github_url = "https://github.com/alea-institute/charboundary/raw/refs/heads/main/charboundary/resources/large_model.skops.xz"
+        
+        # Choose the .xz path version for download
+        download_path = os.path.join(resource_dir, "large_model.skops.xz")
+        
+        # Create resources directory if it doesn't exist
+        os.makedirs(resource_dir, exist_ok=True)
+        
+        # Download the model
+        print(f"Downloading from {github_url}...")
+        urllib.request.urlretrieve(github_url, download_path)
+        print(f"Download complete. Model saved to {download_path}")
+        
+        # Try to load the downloaded model
+        return TextSegmenter.load(download_path, trust_model=True)
+    except Exception as e:
+        download_error = str(e)
+        # If we get here, downloading or loading the downloaded model failed
+        raise RuntimeError(
+            f"Failed to load or download large model.\n"
+            f"Local error: {last_error if last_error else 'No valid model paths found'}\n"
+            f"Download error: {download_error}\n\n"
+            f"You can manually download the large model from:\n"
+            f"https://github.com/alea-institute/charboundary/raw/refs/heads/main/charboundary/resources/large_model.skops.xz\n"
+            f"and place it in: {resource_dir}/"
+        )
 
 
 __version__ = "0.3.0"

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2025-03-31
 
 ### Added
+- Automatic download of large model from GitHub when not available locally
 - Performance benchmarks for all model sizes
 - Comprehensive legal abbreviation support
 - Pattern hash for common text patterns

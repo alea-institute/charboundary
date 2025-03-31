@@ -38,7 +38,7 @@ CharBoundary comes with pre-trained models of different sizes:
 - **Medium** - Default, best performance (7 token context window, 64 trees) - Processes ~280,000 characters/second
 - **Large** - Most accurate (9 token context window, 128 trees) - Processes ~175,000 characters/second
 
-> **Note:** The small and medium models are included in the package distribution. The large model is not included by default to keep the package size reasonable, but can be downloaded separately from the project repository.
+> **Note:** The small and medium models are included in the package distribution. The large model is not included by default to keep the package size reasonable, but will be automatically downloaded from GitHub the first time you use `get_large_segmenter()` if it's not already available locally.
 
 ```python
 from charboundary import get_default_segmenter

@@ -155,8 +155,7 @@ class TextSegmenter:
             encoder=self.encoder,
             abbreviations=self.config.abbreviations,
             use_numpy=self.config.use_numpy,
-            cache_size=self.config.cache_size,
-            feature_cache_size=prediction_cache_size  # Use same size as prediction cache
+            cache_size=self.config.cache_size
         )
         
         self.model = model

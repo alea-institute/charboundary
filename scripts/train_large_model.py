@@ -39,18 +39,18 @@ def train_default_model():
     metrics = segmenter.train(
         data=training_data_path,
         model_params={
-            "n_estimators": 64,
-            "max_depth": 32,
-            "min_samples_split": 8,
-            "min_samples_leaf": 4,
+            "n_estimators": 256,
+            "max_depth": 64,
+            "min_samples_split": 4,
+            "min_samples_leaf": 2,
             "n_jobs": -1,
-            "class_weight": "balanced"
+            "class_weight": "balanced_subsample"
         },
         sample_rate=0.001,  # Sample rate to get good class balance
         left_window=9,  # Optimized window sizes
         right_window=9,
-        use_feature_selection=True,  # Enable feature selection
-        feature_selection_threshold=0.005,  # Keep features with importance >= 0.5%
+        use_feature_selection=False,  # Enable feature selection
+        feature_selection_threshold=0.001,  # Keep features with importance >= 0.5%
         max_features=None  # No upper limit on number of features (use threshold only)
     )
     training_time = time.time() - t0

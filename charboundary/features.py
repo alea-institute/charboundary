@@ -26,7 +26,6 @@ from charboundary.constants import (
     SECONDARY_TERMINATORS,
     OPENING_QUOTES,
     CLOSING_QUOTES,
-    LEGAL_ABBREVIATIONS,
     PUNCTUATION_CHAR_LIST,
     LIST_MARKERS,
     LIST_CONJUNCTIONS,
@@ -72,7 +71,6 @@ class FeatureExtractor:
             abbreviations: Optional[List[str]] = None,
             use_numpy: bool = NUMPY_AVAILABLE,
             cache_size: int = 1024,
-            include_legal_abbreviations: bool = True
         ):
         """
         Initialize the FeatureExtractor.
@@ -85,14 +83,10 @@ class FeatureExtractor:
             use_numpy (bool, optional): Whether to use NumPy for vectorized operations
                 if available. Defaults to True if NumPy is installed.
             cache_size (int, optional): Size of internal LRU caches. Defaults to 1024.
-            include_legal_abbreviations (bool, optional): Whether to include legal-specific
-                abbreviations in the abbreviation list. Defaults to True.
         """
         self.encoder = encoder or CharacterEncoder()
         # Use a set for O(1) lookup time
         abbr_list = abbreviations if abbreviations is not None else DEFAULT_ABBREVIATIONS.copy()
-        if include_legal_abbreviations:
-            abbr_list.extend(LEGAL_ABBREVIATIONS)
         self.abbreviations = set(abbr_list)
         self.use_numpy = use_numpy and NUMPY_AVAILABLE
         self._setup_caches(cache_size)

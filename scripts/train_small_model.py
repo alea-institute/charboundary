@@ -43,7 +43,7 @@ def train_default_model():
             "min_samples_split": 16,
             "min_samples_leaf": 8,
             "n_jobs": -1,
-            "class_weight": "balanced"
+            "class_weight": "balanced_subsample"
         },
         sample_rate=0.001,  # Sample rate to get good class balance
         left_window=5,  # Optimized window sizes

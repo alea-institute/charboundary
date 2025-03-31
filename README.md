@@ -42,8 +42,17 @@ from charboundary import get_default_segmenter
 segmenter = get_default_segmenter()
 
 # Segment text into sentences and paragraphs
-text = "Hello, world! This is a test. This is another sentence."
-
+text = """
+Employee also specifically and forever releases the Acme Inc. (Company) and the Company Parties (except where and 
+to the extent that such a release is expressly prohibited or made void by law) from any claims based on unlawful 
+employment discrimination or harassment, including, but not limited to, the Federal Age Discrimination in 
+Employment Act (29 U.S.C. § 621 et. seq.). This release does not include Employee’s right to indemnification, 
+and related insurance coverage, under Sec. 7.1.4 or Ex. 1-1 of the Employment Agreement, his right to equity awards,
+or continued exercise, pursuant to the terms of any specific equity award (or similar) agreement between 
+Employee and the Company nor to Employee’s right to benefits under any Company plan or program in which
+Employee participated and is due a benefit in accordance with the terms of the plan or program as of the Effective
+Date and ending at 11:59 p.m. Eastern Time on Sep. 15, 2013.
+"""
 # Get list of sentences (with default threshold)
 sentences = segmenter.segment_to_sentences(text)
 print(sentences)

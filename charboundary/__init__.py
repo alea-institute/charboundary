@@ -3,8 +3,24 @@ CharBoundary: A modular library for segmenting text into sentences and paragraph
 """
 
 import os
-from importlib import resources
+import json
 import sys
+
+# Load legal abbreviations from JSON file and populate the constant
+try:
+    legal_abbreviations_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), 
+        "resources", 
+        "legal_abbreviations.json"
+    )
+    if os.path.exists(legal_abbreviations_path):
+        with open(legal_abbreviations_path, 'r') as f:
+            legal_abbrs = json.load(f)
+            # Import and update the constants module
+            from charboundary.constants import LEGAL_ABBREVIATIONS
+            LEGAL_ABBREVIATIONS.extend(legal_abbrs)
+except Exception as e:
+    print(f"Warning: Failed to load legal abbreviations: {e}")
 
 # Import directly from submodules
 from charboundary.constants import (
@@ -50,39 +66,31 @@ def get_default_segmenter() -> TextSegmenter:
     from skops.io import get_untrusted_types
     
     # Check possible model paths (compressed or uncompressed)
-    model_paths = []
-    
     # Medium model is the default
     model_base_name = 'medium_model.skops'
     
-    if sys.version_info >= (3, 9):
-        # Use new resources API for Python 3.9+
-        # Try both compressed and uncompressed files
-        for ext in ['', '.xz', '.lzma']:
-            try:
-                model_paths.append(resources.files('charboundary.resources').joinpath(f'{model_base_name}{ext}'))
-            except Exception:
-                pass
-    else:
-        # Fallback for older Python versions
-        # Try both compressed and uncompressed files
-        for ext in ['', '.xz', '.lzma']:
-            try:
-                model_paths.append(resources.path('charboundary.resources', f'{model_base_name}{ext}').__enter__())
-            except Exception:
-                pass
+    # Directly use file paths instead of context managers
+    package_dir = os.path.dirname(os.path.abspath(__file__))
+    resource_dir = os.path.join(package_dir, "resources")
+    
+    # Try uncompressed and compressed versions
+    model_paths = [
+        os.path.join(resource_dir, f"{model_base_name}"),
+        os.path.join(resource_dir, f"{model_base_name}.xz"),
+        os.path.join(resource_dir, f"{model_base_name}.lzma"),
+    ]
     
     # Try each path until one works
-    for model_resource in model_paths:
-        try:
-            model_path = str(model_resource)
-            return TextSegmenter.load(model_path, trust_model=True)
-        except Exception as e:
-            last_error = e
-            continue
+    last_error = None
+    for model_path in model_paths:
+        if os.path.exists(model_path):
+            try:
+                return TextSegmenter.load(model_path, trust_model=True)
+            except Exception as e:
+                last_error = e
     
     # If we get here, no paths worked
-    raise RuntimeError(f"Failed to load default model. Last error: {last_error if 'last_error' in locals() else 'No valid model paths found'}")
+    raise RuntimeError(f"Failed to load default model. Last error: {last_error if last_error else 'No valid model paths found'}")
 
 
 def get_small_segmenter() -> TextSegmenter:
@@ -100,38 +108,31 @@ def get_small_segmenter() -> TextSegmenter:
     from charboundary.segmenters import SegmenterConfig
     from skops.io import get_untrusted_types
     
-    # Check possible model paths (compressed or uncompressed)
-    model_paths = []
-    
     # Small model
     model_base_name = 'small_model.skops'
     
-    if sys.version_info >= (3, 9):
-        # Use new resources API for Python 3.9+
-        for ext in ['', '.xz', '.lzma']:
-            try:
-                model_paths.append(resources.files('charboundary.resources').joinpath(f'{model_base_name}{ext}'))
-            except Exception:
-                pass
-    else:
-        # Fallback for older Python versions
-        for ext in ['', '.xz', '.lzma']:
-            try:
-                model_paths.append(resources.path('charboundary.resources', f'{model_base_name}{ext}').__enter__())
-            except Exception:
-                pass
+    # Directly use file paths instead of context managers
+    package_dir = os.path.dirname(os.path.abspath(__file__))
+    resource_dir = os.path.join(package_dir, "resources")
+    
+    # Try uncompressed and compressed versions
+    model_paths = [
+        os.path.join(resource_dir, f"{model_base_name}"),
+        os.path.join(resource_dir, f"{model_base_name}.xz"),
+        os.path.join(resource_dir, f"{model_base_name}.lzma"),
+    ]
     
     # Try each path until one works
-    for model_resource in model_paths:
-        try:
-            model_path = str(model_resource)
-            return TextSegmenter.load(model_path, trust_model=True)
-        except Exception as e:
-            last_error = e
-            continue
+    last_error = None
+    for model_path in model_paths:
+        if os.path.exists(model_path):
+            try:
+                return TextSegmenter.load(model_path, trust_model=True)
+            except Exception as e:
+                last_error = e
     
     # If we get here, no paths worked
-    raise RuntimeError(f"Failed to load small model. Last error: {last_error if 'last_error' in locals() else 'No valid model paths found'}")
+    raise RuntimeError(f"Failed to load small model. Last error: {last_error if last_error else 'No valid model paths found'}")
 
 
 def get_large_segmenter() -> TextSegmenter:
@@ -149,38 +150,31 @@ def get_large_segmenter() -> TextSegmenter:
     from charboundary.segmenters import SegmenterConfig
     from skops.io import get_untrusted_types
     
-    # Check possible model paths (compressed or uncompressed)
-    model_paths = []
-    
     # Large model
     model_base_name = 'large_model.skops'
     
-    if sys.version_info >= (3, 9):
-        # Use new resources API for Python 3.9+
-        for ext in ['', '.xz', '.lzma']:
-            try:
-                model_paths.append(resources.files('charboundary.resources').joinpath(f'{model_base_name}{ext}'))
-            except Exception:
-                pass
-    else:
-        # Fallback for older Python versions
-        for ext in ['', '.xz', '.lzma']:
-            try:
-                model_paths.append(resources.path('charboundary.resources', f'{model_base_name}{ext}').__enter__())
-            except Exception:
-                pass
+    # Directly use file paths instead of context managers
+    package_dir = os.path.dirname(os.path.abspath(__file__))
+    resource_dir = os.path.join(package_dir, "resources")
+    
+    # Try uncompressed and compressed versions
+    model_paths = [
+        os.path.join(resource_dir, f"{model_base_name}"),
+        os.path.join(resource_dir, f"{model_base_name}.xz"),
+        os.path.join(resource_dir, f"{model_base_name}.lzma"),
+    ]
     
     # Try each path until one works
-    for model_resource in model_paths:
-        try:
-            model_path = str(model_resource)
-            return TextSegmenter.load(model_path, trust_model=True)
-        except Exception as e:
-            last_error = e
-            continue
+    last_error = None
+    for model_path in model_paths:
+        if os.path.exists(model_path):
+            try:
+                return TextSegmenter.load(model_path, trust_model=True)
+            except Exception as e:
+                last_error = e
     
     # If we get here, no paths worked
-    raise RuntimeError(f"Failed to load large model. Last error: {last_error if 'last_error' in locals() else 'No valid model paths found'}")
+    raise RuntimeError(f"Failed to load large model. Last error: {last_error if last_error else 'No valid model paths found'}")
 
 
 __version__ = "0.2.0"

@@ -183,4 +183,4 @@ def get_large_segmenter() -> TextSegmenter:
     raise RuntimeError(f"Failed to load large model. Last error: {last_error if 'last_error' in locals() else 'No valid model paths found'}")
 
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

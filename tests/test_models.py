@@ -31,8 +31,8 @@ class TestModels:
     def test_model_binary_classification(self, trained_model):
         """Test binary classification with the model."""
         
-        # Create some test features matching the model's expected feature count
-        test_features = [[1, 2, 3, 0, 0, 0, 0, 0], [4, 5, 6, 0, 0, 0, 0, 0]]
+        # Create some test features matching the model's expected feature count (15 features)
+        test_features = [[1, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [4, 5, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
         
         # Get predictions
         predictions = trained_model.predict(test_features)
@@ -44,8 +44,12 @@ class TestModels:
     def test_model_metrics(self, trained_model):
         """Test model metrics calculation."""
         
-        # Create test data matching model's feature dimensions
-        test_features = [[1, 2, 3, 0, 0, 0, 0, 0], [4, 5, 6, 0, 0, 0, 0, 0], [7, 8, 9, 0, 0, 0, 0, 0]]
+        # Create test data matching model's feature dimensions (15 features)
+        test_features = [
+            [1, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [4, 5, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [7, 8, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        ]
         test_labels = [0, 1, 0]
         
         # Calculate metrics
@@ -69,8 +73,8 @@ class TestModels:
         importances = trained_model.get_feature_importances()
         
         # The actual number of importances depends on the window size used in training
-        # For the trained_model fixture, the expected feature count is 8
-        expected_features = 8
+        # For the trained_model fixture with optimizations, expected feature count is 15
+        expected_features = 15
         assert len(importances) == expected_features
         
         # Importances should sum to approximately 1
@@ -82,10 +86,10 @@ class TestModels:
 
     def test_benchmark_prediction(self, benchmark, trained_model):
         """Benchmark model prediction performance."""
-        # Create some test features
+        # Create some test features matching the model's feature count (15)
         test_features = []
         for i in range(100):
-            test_features.append([i % 10, (i + 1) % 10, (i + 2) % 10, 0])
+            test_features.append([i % 10, (i + 1) % 10, (i + 2) % 10] + [0] * 12)
         
         # Define a benchmark function
         def predict_features():

@@ -19,8 +19,8 @@ class TestFeatureExtractor:
         # Should have a feature vector for each character
         assert len(features) == len(text)
         
-        # Each feature vector should have size 2*window+1+1 (window on each side + current + abbreviation flag)
-        assert len(features[0]) == 4  # 1+1+1+1
+        # Feature vector has window*2+1 chars features + 8 special features
+        assert len(features[0]) == (2*1+1) + 8  # window*2+1 + 8 special features
         
         # Check the middle character features
         middle_features = features[1]
@@ -50,8 +50,8 @@ class TestFeatureExtractor:
         period_index = text.find('.')
         period_features = features[period_index]
         
-        # The abbreviation flag (last feature) should be 1
-        assert period_features[-1] == 1
+        # The abbreviation flag is at window_size index (index 3 for window=1)
+        assert period_features[3] == 1
         
         # Test with a non-abbreviation period
         text = "End of sentence."
@@ -61,8 +61,8 @@ class TestFeatureExtractor:
         period_index = text.find('.')
         period_features = features[period_index]
         
-        # The abbreviation flag should be 0
-        assert period_features[-1] == 0
+        # The abbreviation flag is at window_size index (index 3 for window=1)
+        assert period_features[3] == 0
 
     def test_mark_annotation_positions(self, feature_extractor: FeatureExtractor):
         """Test marking of annotation positions."""
@@ -99,8 +99,8 @@ class TestFeatureExtractor:
         assert len(features) == len(clean_text)
         assert len(labels) == len(clean_text)
         
-        # Check feature vector size
-        assert len(features[0]) == 2*2+1+1  # 2*window+1+1
+        # Check feature vector size - window*2+1 char features + 8 special features
+        assert len(features[0]) == 2*2+1+8  # 2*window+1+8
 
     def test_benchmark_feature_extraction(self, benchmark, feature_extractor: FeatureExtractor):
         """Benchmark feature extraction performance."""

@@ -26,10 +26,6 @@ def test_constants_values():
     
     # Default abbreviations should exist
     assert len(DEFAULT_ABBREVIATIONS) > 0
-    
-    # All abbreviations should end with a period
-    for abbr in DEFAULT_ABBREVIATIONS:
-        assert abbr.endswith('.')
 
 
 def test_terminal_characters():

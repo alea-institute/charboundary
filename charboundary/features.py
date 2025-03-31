@@ -212,39 +212,72 @@ class FeatureExtractor:
         """
         if position >= len(text):
             return False
+
+        # Cache text length for faster repeated access
+        text_len = len(text)
+            
+        # Optimize common case: check if character is part of list marker with fixed-length substrings
+        char = text[position] if position < text_len else ''
+        
+        # Skip checking if character is not likely part of a list marker
+        if char not in '()0123456789abcdefghijklmnopqrstuvwxyz.•·○●■□▪▫':
+            # If not a character typically found in list markers, do quick checks for context
+            if position > 0 and position < text_len - 1:
+                # Only check for list context if the character is a boundary character
+                if char in '.,;:' or text[position-1] in '.,;:':
+                    # Check only right after potential list markers or boundaries
+                    pass
+                else:
+                    return False
+            else:
+                return False
             
         # Check if this character is part of a list marker
+        # Use a more efficient approach by checking fixed patterns
         for marker in LIST_MARKERS:
+            marker_len = len(marker)
+            
             # Check if the marker appears right before this position
-            marker_start = position - len(marker)
-            if marker_start >= 0 and text[marker_start:position].endswith(marker):
+            marker_start = position - marker_len
+            if marker_start >= 0 and text[marker_start:position] == marker:
                 return True
                 
             # Check if the marker appears right after this position
-            marker_end = position + len(marker)
-            if marker_end <= len(text) and text[position:marker_end].startswith(marker):
+            marker_end = position + marker_len
+            if marker_end <= text_len and text[position:marker_end] == marker:
                 return True
             
-        # Check for broader context - is this part of a list structure?
-        # Look for beginning of list within window
-        start_idx = max(0, position - window_size)
-        context_before = text[start_idx:position]
-        
-        # Check if there's a list introduction marker before this position
-        for intro in LIST_INTROS:
-            if intro in context_before:
-                return True
+        # Only do expensive context checks if at a potential list boundary
+        if (char in '.,;:()[]' or 
+            (position > 0 and text[position-1] in '.,;:()') or
+            (position < text_len-1 and text[position+1] in '.,;:()[]')):
+            
+            # Check for broader context - is this part of a list structure?
+            # Look for beginning of list within window - but only if likely to be a list
+            start_idx = max(0, position - window_size)
+            context_before = text[start_idx:position]
+            
+            # Use substring search instead of 'in' for better performance
+            # Precompute lower bound lengths to avoid unnecessary searches
+            min_intro_len = 5  # Minimum length of a list intro
+            has_colon_before = ':' in context_before[-min_intro_len:] if len(context_before) >= min_intro_len else False
+            
+            # Only search for list intros if there's a colon nearby
+            if has_colon_before:
+                for intro in LIST_INTROS:
+                    if intro in context_before:
+                        return True
+                    
+            # Look for list conjunction (like "and", "or") that often indicates a list
+            # Only if character is a semicolon or comma
+            if char in ';,' or (position > 0 and text[position-1] in ';,'):
+                end_idx = min(text_len, position + window_size)
+                context_after = text[position:end_idx]
                 
-        # Look for list conjunction (like "and", "or") that often indicates a list
-        end_idx = min(len(text), position + window_size)
-        context_after = text[position:end_idx]
-        
-        for conj in LIST_CONJUNCTIONS:
-            if conj in context_after:
-                # Check if the conjunction is preceded by a semicolon or comma
-                conj_pos = context_after.find(conj)
-                if conj_pos > 0 and (context_after[conj_pos-1] == ';' or context_after[conj_pos-1] == ','):
-                    return True
+                for conj in LIST_CONJUNCTIONS:
+                    conj_pos = context_after.find(conj)
+                    if conj_pos > 0 and conj_pos < 5 and (context_after[conj_pos-1] == ';' or context_after[conj_pos-1] == ','):
+                        return True
         
         return False
         
@@ -436,33 +469,85 @@ class FeatureExtractor:
         window_size = left_window + right_window + 1
         feature_size = window_size + 8  # +8 for additional features
         
-        # Pre-encode all characters as a NumPy array
+        # Pre-encode all characters as a NumPy array - memoized for performance
         encoded_chars = np.array([self.encoder.encode(c) for c in text], dtype=np.int32)
         
-        # Pre-compute feature flags
-        abbr_flags = np.array([self.is_in_abbreviation(text, i) for i in range(n)], dtype=np.int8)
-        primary_term_flags = np.array([1 if (i < n and text[i] in PRIMARY_TERMINATORS) else 0 
-                                     for i in range(n)], dtype=np.int8)
-        secondary_term_flags = np.array([1 if (i < n and text[i] in SECONDARY_TERMINATORS) else 0 
-                                       for i in range(n)], dtype=np.int8)
-        quote_balanced_flags = np.array([self._is_quote_balanced(text, i) for i in range(n)], dtype=np.int8)
-        word_complete_flags = np.array([self._is_word_likely_complete(text, i) for i in range(n)], dtype=np.int8)
-        followed_by_lowercase_flags = np.array([1 if (i < n-1 and text[i+1].islower()) else 0 
-                                              for i in range(n)], dtype=np.int8)
-        
-        # List-related features
-        in_list_item_flags = np.array([self._is_in_list_item(text, i) for i in range(n)], dtype=np.int8)
-        semicolon_in_list_flags = np.array([self._is_semicolon_in_list(text, i) for i in range(n)], dtype=np.int8)
-        near_colon_flags = np.array([self._is_near_colon(text, i) for i in range(n)], dtype=np.int8)
-        
-        # Calculate terminator feature (-1 for secondary, 0 for non-terminator, 1 for primary)
-        terminator_feature = primary_term_flags - secondary_term_flags
-        
-        # Determine positions
+        # Determine positions early to avoid unnecessary computation for unused positions
         if positions is None:
             position_indices = np.arange(n, dtype=np.int32)
         else:
             position_indices = np.array([p for p in positions if 0 <= p < n], dtype=np.int32)
+            
+        # If positions is specified and small, only compute features for those positions
+        if positions is not None and len(position_indices) < n / 4:  # Only compute for positions if less than 25% of text
+            # More efficient to compute features only for needed positions
+            num_positions = len(position_indices)
+            
+            # Create a mapping from position indices to array indices for efficient lookup
+            pos_to_idx = {pos: idx for idx, pos in enumerate(position_indices)}
+            
+            # Pre-compute feature flags only for positions we care about
+            abbr_flags = np.array([self.is_in_abbreviation(text, i) for i in position_indices], dtype=np.int8)
+            primary_term_flags = np.array([1 if text[i] in PRIMARY_TERMINATORS else 0 
+                                         for i in position_indices], dtype=np.int8)
+            secondary_term_flags = np.array([1 if text[i] in SECONDARY_TERMINATORS else 0 
+                                           for i in position_indices], dtype=np.int8)
+            quote_balanced_flags = np.array([self._is_quote_balanced(text, i) for i in position_indices], dtype=np.int8)
+            word_complete_flags = np.array([self._is_word_likely_complete(text, i) for i in position_indices], dtype=np.int8)
+            followed_by_lowercase_flags = np.array([1 if (i < n-1 and text[i+1].islower()) else 0 
+                                                  for i in position_indices], dtype=np.int8)
+            
+            # List-related features - compute only for potential list positions
+            in_list_item_flags = np.zeros(num_positions, dtype=np.int8)
+            semicolon_in_list_flags = np.zeros(num_positions, dtype=np.int8)
+            near_colon_flags = np.zeros(num_positions, dtype=np.int8)
+            
+            # Only compute expensive list-related features for positions that might be in lists
+            for idx, pos in enumerate(position_indices):
+                char = text[pos]
+                # Only check for lists if this could be a list-related character
+                if (char in '.,;:()[]0123456789abcdefghijklmnopqrstuvwxyz•·○●■□▪▫' or
+                    (pos > 0 and text[pos-1] in '.,;:()') or
+                    (pos < n-1 and text[pos+1] in '.,;:()')):
+                    in_list_item_flags[idx] = self._is_in_list_item(text, pos)
+                    if char == ';':
+                        semicolon_in_list_flags[idx] = self._is_semicolon_in_list(text, pos)
+                    if char == ':' or (pos > 0 and text[pos-1] == ':') or (pos < n-1 and text[pos+1] == ':'):
+                        near_colon_flags[idx] = self._is_near_colon(text, pos)
+        else:
+            # For full text or large number of positions, traditional vectorized approach
+            # Pre-compute feature flags for all positions
+            abbr_flags = np.array([self.is_in_abbreviation(text, i) for i in range(n)], dtype=np.int8)
+            primary_term_flags = np.array([1 if (i < n and text[i] in PRIMARY_TERMINATORS) else 0 
+                                         for i in range(n)], dtype=np.int8)
+            secondary_term_flags = np.array([1 if (i < n and text[i] in SECONDARY_TERMINATORS) else 0 
+                                           for i in range(n)], dtype=np.int8)
+            quote_balanced_flags = np.array([self._is_quote_balanced(text, i) for i in range(n)], dtype=np.int8)
+            word_complete_flags = np.array([self._is_word_likely_complete(text, i) for i in range(n)], dtype=np.int8)
+            followed_by_lowercase_flags = np.array([1 if (i < n-1 and text[i+1].islower()) else 0 
+                                                  for i in range(n)], dtype=np.int8)
+            
+            # List-related features - focus optimization on these expensive ones
+            in_list_item_flags = np.zeros(n, dtype=np.int8)
+            semicolon_in_list_flags = np.zeros(n, dtype=np.int8)
+            near_colon_flags = np.zeros(n, dtype=np.int8)
+            
+            # Only compute expensive features for potential list positions
+            for i in range(n):
+                char = text[i] if i < n else ''
+                # Early filtering for list-related computation
+                if (char in '.,;:()[]0123456789abcdefghijklmnopqrstuvwxyz•·○●■□▪▫' or
+                    (i > 0 and text[i-1] in '.,;:()') or
+                    (i < n-1 and text[i+1] in '.,;:()')):
+                    in_list_item_flags[i] = self._is_in_list_item(text, i)
+                    if char == ';':
+                        semicolon_in_list_flags[i] = self._is_semicolon_in_list(text, i)
+                    if char == ':' or (i > 0 and text[i-1] == ':') or (i < n-1 and text[i+1] == ':'):
+                        near_colon_flags[i] = self._is_near_colon(text, i)
+        
+        # Calculate terminator feature (-1 for secondary, 0 for non-terminator, 1 for primary)
+        # Consistent definition for all paths
+        terminator_feature = primary_term_flags - secondary_term_flags
         
         # Initialize features matrix
         num_positions = len(position_indices)
@@ -482,14 +567,27 @@ class FeatureExtractor:
             features[i, feat_start:feat_end] = encoded_chars[start_idx:end_idx]
             
             # Add additional features
-            features[i, window_size] = abbr_flags[pos]                   # Abbreviation flag
-            features[i, window_size + 1] = terminator_feature[pos]       # Terminator type
-            features[i, window_size + 2] = quote_balanced_flags[pos]     # Quote balance
-            features[i, window_size + 3] = word_complete_flags[pos]      # Word completion
-            features[i, window_size + 4] = followed_by_lowercase_flags[pos]  # Followed by lowercase
-            features[i, window_size + 5] = in_list_item_flags[pos]       # Is in list item
-            features[i, window_size + 6] = semicolon_in_list_flags[pos]  # Is semicolon in list
-            features[i, window_size + 7] = near_colon_flags[pos]         # Is near colon
+            if positions is not None and len(position_indices) < n / 4:
+                # For selective positions optimization path
+                idx = i  # For selective positions, the array index matches feature array index
+                features[i, window_size] = abbr_flags[idx]                # Abbreviation flag
+                features[i, window_size + 1] = terminator_feature[idx]    # Terminator type
+                features[i, window_size + 2] = quote_balanced_flags[idx]  # Quote balance
+                features[i, window_size + 3] = word_complete_flags[idx]   # Word completion
+                features[i, window_size + 4] = followed_by_lowercase_flags[idx]  # Followed by lowercase
+                features[i, window_size + 5] = in_list_item_flags[idx]    # Is in list item
+                features[i, window_size + 6] = semicolon_in_list_flags[idx]  # Is semicolon in list
+                features[i, window_size + 7] = near_colon_flags[idx]      # Is near colon
+            else:
+                # For full text processing path
+                features[i, window_size] = abbr_flags[pos]                # Abbreviation flag
+                features[i, window_size + 1] = terminator_feature[pos]    # Terminator type
+                features[i, window_size + 2] = quote_balanced_flags[pos]  # Quote balance
+                features[i, window_size + 3] = word_complete_flags[pos]   # Word completion
+                features[i, window_size + 4] = followed_by_lowercase_flags[pos]  # Followed by lowercase
+                features[i, window_size + 5] = in_list_item_flags[pos]    # Is in list item
+                features[i, window_size + 6] = semicolon_in_list_flags[pos]  # Is semicolon in list
+                features[i, window_size + 7] = near_colon_flags[pos]      # Is near colon
         
         # Convert back to list for API compatibility
         return features.tolist()

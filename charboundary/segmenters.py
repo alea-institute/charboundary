@@ -628,33 +628,40 @@ class TextSegmenter:
         # Use the model's threshold if none is provided
         threshold_to_use = threshold if threshold is not None else self.config.threshold
 
-        # Extract features for terminal characters only
+        # Extract features for terminal characters only - optimized approach
         terminal_indices = []
-        terminal_features = []
         
+        # Pre-identify all terminal characters to batch process them
         for i, char in enumerate(text):
             if char in TERMINAL_SENTENCE_CHAR_LIST or char in TERMINAL_PARAGRAPH_CHAR_LIST:
                 terminal_indices.append(i)
-                char_features = self.feature_extractor.get_char_features(
-                    text, self.config.left_window, self.config.right_window, positions=[i]
-                )[0]
-                terminal_features.append(char_features)
+        
+        # Skip feature extraction if no terminal characters found
+        if not terminal_indices:
+            return text
+            
+        # Batch process all terminal characters at once for better performance
+        terminal_features = self.feature_extractor.get_char_features(
+            text, self.config.left_window, self.config.right_window, positions=terminal_indices
+        )
                 
-        # Only predict for terminal characters
-        if terminal_features:
-            predictions = self.model.predict(terminal_features, threshold=threshold_to_use)
-        else:
-            predictions = []
+        # Predict for all terminal characters in one batch
+        predictions = self.model.predict(terminal_features, threshold=threshold_to_use)
+            
+        # Optimization: only create result list if we have boundaries
+        if not any(predictions):
+            return text
             
         # Apply segmentation
         result = list(text)
         
         # Insert tags from end to beginning to maintain correct indices
-        # Sort indices in reverse order
-        for idx, (pos, pred) in enumerate(zip(
-            reversed(terminal_indices), 
-            reversed(predictions)
-        )):
+        # Pre-reverse the arrays for better performance
+        reversed_indices = terminal_indices[::-1]
+        reversed_predictions = predictions[::-1]
+        
+        # Boundary detection and tag insertion
+        for pos, pred in zip(reversed_indices, reversed_predictions):
             if pred == 1:
                 char = text[pos]
                 # Insert tags after this character
@@ -768,6 +775,11 @@ class TextSegmenter:
         Returns:
             List[str]: List of sentences
         """
+        # Quick return for empty text
+        if not text:
+            return []
+            
+        # Use optimized segmentation based on text size
         if streaming and len(text) > 10000:
             # For large texts, use streaming segmentation
             # Note: streaming mode doesn't currently support custom threshold
@@ -777,32 +789,36 @@ class TextSegmenter:
             # For smaller texts, use regular segmentation
             segmented_text = self.segment_text(text, threshold=threshold)
             
+        # Fast path: if no sentence tags were added, return the whole text as one sentence
+        if SENTENCE_TAG not in segmented_text:
+            return [text.strip()] if text.strip() else []
+            
+        # More efficient string splitting and processing
+        # Pre-compute tag lengths for performance
+        sent_tag_len = len(SENTENCE_TAG)
+        para_tag_len = len(PARAGRAPH_TAG)
+        
+        # Split by sentence tag, but handle paragraph tags properly
         sentences = []
-        current_sentence = []
-
-        i = 0
-        while i < len(segmented_text):
-            if (i + len(SENTENCE_TAG) <= len(segmented_text) and
-                    segmented_text[i:i + len(SENTENCE_TAG)] == SENTENCE_TAG):
-                # Append the completed sentence
-                if current_sentence:
-                    sentences.append("".join(current_sentence))
-                current_sentence = []
-                i += len(SENTENCE_TAG)
-            elif (i + len(PARAGRAPH_TAG) <= len(segmented_text) and
-                  segmented_text[i:i + len(PARAGRAPH_TAG)] == PARAGRAPH_TAG):
-                # Skip paragraph tags when extracting sentences
-                i += len(PARAGRAPH_TAG)
-            else:
-                current_sentence.append(segmented_text[i])
-                i += 1
-
-        # Add the last sentence if there is one
-        if current_sentence:
-            sentences.append("".join(current_sentence))
-
-        # Ensure each sentence is properly cleaned
-        return [s.strip() for s in sentences if s.strip()]
+        segments = segmented_text.split(SENTENCE_TAG)
+        
+        # First segment is always before any sentence tag
+        if segments[0].strip():
+            sentences.append(segments[0].strip())
+            
+        # Process remaining segments (each starts after a sentence tag)
+        for segment in segments[1:]:
+            # Remove any paragraph tags at the beginning of the segment
+            if segment.startswith(PARAGRAPH_TAG):
+                segment = segment[para_tag_len:]
+                
+            # Remove any paragraph tags in the segment
+            segment = segment.replace(PARAGRAPH_TAG, '')
+            
+            if segment.strip():
+                sentences.append(segment.strip())
+        
+        return sentences
 
     def segment_to_paragraphs(self, text: str, streaming: bool = False, threshold: Optional[float] = None) -> List[str]:
         """
@@ -821,6 +837,11 @@ class TextSegmenter:
         Returns:
             List[str]: List of paragraphs
         """
+        # Quick return for empty text
+        if not text:
+            return []
+            
+        # Use optimized segmentation based on text size
         if streaming and len(text) > 10000:
             # For large texts, use streaming segmentation
             # Note: streaming mode doesn't currently support custom threshold
@@ -830,31 +851,23 @@ class TextSegmenter:
             # For smaller texts, use regular segmentation
             segmented_text = self.segment_text(text, threshold=threshold)
             
-        paragraphs = []
-        current_paragraph = []
-
-        i = 0
-        while i < len(segmented_text):
-            if (i + len(PARAGRAPH_TAG) <= len(segmented_text) and
-                    segmented_text[i:i + len(PARAGRAPH_TAG)] == PARAGRAPH_TAG):
-                # Append the completed paragraph
-                if current_paragraph:
-                    paragraphs.append("".join(current_paragraph))
-                current_paragraph = []
-                i += len(PARAGRAPH_TAG)
-            elif (i + len(SENTENCE_TAG) <= len(segmented_text) and
-                  segmented_text[i:i + len(SENTENCE_TAG)] == SENTENCE_TAG):
-                # Skip sentence tags when extracting paragraphs
-                i += len(SENTENCE_TAG)
-            else:
-                current_paragraph.append(segmented_text[i])
-                i += 1
-
-        # Add the last paragraph if there is one
-        if current_paragraph:
-            paragraphs.append("".join(current_paragraph))
-
-        # Ensure each paragraph is properly cleaned
+        # Fast path: if no paragraph tags were added, return the whole text as one paragraph
+        if PARAGRAPH_TAG not in segmented_text:
+            # Remove any sentence tags that might be present
+            clean_text = segmented_text.replace(SENTENCE_TAG, '')
+            return [clean_text.strip()] if clean_text.strip() else []
+            
+        # More efficient string splitting and processing
+        # Pre-compute tag length for performance
+        sent_tag_len = len(SENTENCE_TAG)
+        
+        # First remove all sentence tags for paragraph processing
+        text_without_sentences = segmented_text.replace(SENTENCE_TAG, '')
+        
+        # Split by paragraph tag
+        paragraphs = text_without_sentences.split(PARAGRAPH_TAG)
+        
+        # Clean up the paragraphs
         return [p.strip() for p in paragraphs if p.strip()]
         
     def get_abbreviations(self) -> List[str]:

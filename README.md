@@ -351,6 +351,29 @@ pipx install charboundary
 pip install charboundary
 ```
 
+## Development Tools
+
+### Profiling Performance
+
+The library includes a profiling script to identify performance bottlenecks:
+
+```bash
+# Profile all operations (training, inference, model loading)
+python scripts/profile_model.py --mode all
+
+# Profile just the training process
+python scripts/profile_model.py --mode train --samples 500
+
+# Profile just the inference process
+python scripts/profile_model.py --mode inference --iterations 200
+
+# Profile model loading
+python scripts/profile_model.py --mode load --model charboundary/resources/medium_model.skops.xz
+
+# Save profiling results to a file
+python scripts/profile_model.py --output profile_results.txt
+```
+
 ## License
 
 MIT

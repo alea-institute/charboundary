@@ -5,6 +5,7 @@ CharBoundary: A modular library for segmenting text into sentences and paragraph
 import os
 import json
 import sys
+import warnings
 
 # Import directly from submodules
 from charboundary.constants import (
@@ -16,14 +17,39 @@ from charboundary.features import FeatureExtractor
 from charboundary.segmenters import TextSegmenter
 from charboundary.utils import load_jsonl, save_jsonl
 
+# Try to import ONNX support
+try:
+    from charboundary.onnx_support import check_onnx_available
+    ONNX_AVAILABLE = check_onnx_available()
+except ImportError:
+    ONNX_AVAILABLE = False
+
+# Import remote model helpers
+from charboundary.remote_models import (
+    get_model_path,
+    download_model,
+    get_resource_dir,
+    get_onnx_dir,
+    ensure_onnx_dir
+)
+
 # Export the model loading functions as part of the public API
 __all__ = [
     'SENTENCE_TAG', 'PARAGRAPH_TAG',
     'CharacterEncoder', 'FeatureExtractor', 'TextSegmenter',
     'load_jsonl', 'save_jsonl',
     'get_default_segmenter', 'get_small_segmenter', 'get_large_segmenter',
+    'get_onnx_segmenter', 'get_small_onnx_segmenter', 'get_medium_onnx_segmenter', 'get_large_onnx_segmenter',
+    'download_onnx_model',
     'cli'
 ]
+
+# Check if ONNX is available and warn if needed
+if not ONNX_AVAILABLE:
+    warnings.warn(
+        "ONNX support is not available. Install the optional dependencies with: "
+        "pip install charboundary[onnx]"
+    )
 
 # Create a convenience function to run the CLI
 def cli():
@@ -44,37 +70,23 @@ def get_default_segmenter() -> TextSegmenter:
     Returns:
         TextSegmenter: A pre-trained text segmenter using the medium model
     """
-    # Import needed types
     from charboundary.models import BinaryRandomForestModel
     from charboundary.segmenters import SegmenterConfig
     from skops.io import get_untrusted_types
     
-    # Check possible model paths (compressed or uncompressed)
-    # Medium model is the default
-    model_base_name = 'medium_model.skops'
+    # Try to get model path
+    model_path = get_model_path("medium", use_onnx=False, download=True)
     
-    # Directly use file paths instead of context managers
-    package_dir = os.path.dirname(os.path.abspath(__file__))
-    resource_dir = os.path.join(package_dir, "resources")
+    if model_path is None:
+        raise RuntimeError(
+            f"Failed to load or download medium model.\n"
+            f"You can manually download the medium model from:\n"
+            f"https://github.com/alea-institute/charboundary/raw/refs/heads/main/charboundary/resources/medium_model.skops.xz\n"
+            f"and place it in: {get_resource_dir()}/"
+        )
     
-    # Try uncompressed and compressed versions
-    model_paths = [
-        os.path.join(resource_dir, f"{model_base_name}"),
-        os.path.join(resource_dir, f"{model_base_name}.xz"),
-        os.path.join(resource_dir, f"{model_base_name}.lzma"),
-    ]
-    
-    # Try each path until one works
-    last_error = None
-    for model_path in model_paths:
-        if os.path.exists(model_path):
-            try:
-                return TextSegmenter.load(model_path, trust_model=True)
-            except Exception as e:
-                last_error = e
-    
-    # If we get here, no paths worked
-    raise RuntimeError(f"Failed to load default model. Last error: {last_error if last_error else 'No valid model paths found'}")
+    # Load the model
+    return TextSegmenter.load(model_path, trust_model=True)
 
 
 def get_small_segmenter() -> TextSegmenter:
@@ -87,36 +99,23 @@ def get_small_segmenter() -> TextSegmenter:
     Returns:
         TextSegmenter: A pre-trained text segmenter using the small model
     """
-    # Import needed types
     from charboundary.models import BinaryRandomForestModel
     from charboundary.segmenters import SegmenterConfig
     from skops.io import get_untrusted_types
     
-    # Small model
-    model_base_name = 'small_model.skops'
+    # Try to get model path
+    model_path = get_model_path("small", use_onnx=False, download=True)
     
-    # Directly use file paths instead of context managers
-    package_dir = os.path.dirname(os.path.abspath(__file__))
-    resource_dir = os.path.join(package_dir, "resources")
+    if model_path is None:
+        raise RuntimeError(
+            f"Failed to load or download small model.\n"
+            f"You can manually download the small model from:\n"
+            f"https://github.com/alea-institute/charboundary/raw/refs/heads/main/charboundary/resources/small_model.skops.xz\n"
+            f"and place it in: {get_resource_dir()}/"
+        )
     
-    # Try uncompressed and compressed versions
-    model_paths = [
-        os.path.join(resource_dir, f"{model_base_name}"),
-        os.path.join(resource_dir, f"{model_base_name}.xz"),
-        os.path.join(resource_dir, f"{model_base_name}.lzma"),
-    ]
-    
-    # Try each path until one works
-    last_error = None
-    for model_path in model_paths:
-        if os.path.exists(model_path):
-            try:
-                return TextSegmenter.load(model_path, trust_model=True)
-            except Exception as e:
-                last_error = e
-    
-    # If we get here, no paths worked
-    raise RuntimeError(f"Failed to load small model. Last error: {last_error if last_error else 'No valid model paths found'}")
+    # Load the model
+    return TextSegmenter.load(model_path, trust_model=True)
 
 
 def get_large_segmenter() -> TextSegmenter:
@@ -132,65 +131,140 @@ def get_large_segmenter() -> TextSegmenter:
     Returns:
         TextSegmenter: A pre-trained text segmenter using the large model
     """
-    # Import needed types
-    import urllib.request
     from charboundary.models import BinaryRandomForestModel
     from charboundary.segmenters import SegmenterConfig
     from skops.io import get_untrusted_types
     
-    # Large model
-    model_base_name = 'large_model.skops'
+    # Try to get model path
+    model_path = get_model_path("large", use_onnx=False, download=True)
     
-    # Directly use file paths instead of context managers
-    package_dir = os.path.dirname(os.path.abspath(__file__))
-    resource_dir = os.path.join(package_dir, "resources")
-    
-    # Try uncompressed and compressed versions
-    model_paths = [
-        os.path.join(resource_dir, f"{model_base_name}"),
-        os.path.join(resource_dir, f"{model_base_name}.xz"),
-        os.path.join(resource_dir, f"{model_base_name}.lzma"),
-    ]
-    
-    # Try each path until one works
-    last_error = None
-    for model_path in model_paths:
-        if os.path.exists(model_path):
-            try:
-                return TextSegmenter.load(model_path, trust_model=True)
-            except Exception as e:
-                last_error = e
-    
-    # If no local model found, try to download it
-    print("Large model not found locally. Attempting to download from GitHub...")
-    try:
-        # Define GitHub URL for the compressed model
-        github_url = "https://github.com/alea-institute/charboundary/raw/refs/heads/main/charboundary/resources/large_model.skops.xz"
-        
-        # Choose the .xz path version for download
-        download_path = os.path.join(resource_dir, "large_model.skops.xz")
-        
-        # Create resources directory if it doesn't exist
-        os.makedirs(resource_dir, exist_ok=True)
-        
-        # Download the model
-        print(f"Downloading from {github_url}...")
-        urllib.request.urlretrieve(github_url, download_path)
-        print(f"Download complete. Model saved to {download_path}")
-        
-        # Try to load the downloaded model
-        return TextSegmenter.load(download_path, trust_model=True)
-    except Exception as e:
-        download_error = str(e)
-        # If we get here, downloading or loading the downloaded model failed
+    if model_path is None:
         raise RuntimeError(
             f"Failed to load or download large model.\n"
-            f"Local error: {last_error if last_error else 'No valid model paths found'}\n"
-            f"Download error: {download_error}\n\n"
             f"You can manually download the large model from:\n"
             f"https://github.com/alea-institute/charboundary/raw/refs/heads/main/charboundary/resources/large_model.skops.xz\n"
-            f"and place it in: {resource_dir}/"
+            f"and place it in: {get_resource_dir()}/"
         )
+    
+    # Load the model
+    return TextSegmenter.load(model_path, trust_model=True)
 
 
-__version__ = "0.3.0"
+def download_onnx_model(model_name: str, force: bool = False) -> str:
+    """
+    Download an ONNX model if not available locally.
+    
+    Args:
+        model_name: Name of the model ('small', 'medium', or 'large')
+        force: Whether to force download even if the model exists locally
+    
+    Returns:
+        str: Path to the downloaded model
+    """
+    if not ONNX_AVAILABLE:
+        raise ImportError(
+            "ONNX support is not available. "
+            "Install it with: pip install charboundary[onnx]"
+        )
+    
+    # Ensure model name is valid
+    if model_name not in ["small", "medium", "large"]:
+        raise ValueError(f"Unknown model name: {model_name}. Use 'small', 'medium', or 'large'.")
+    
+    # Get model file name
+    model_file = f"{model_name}_model.onnx"
+    
+    # Download the model
+    path = download_model(model_file, force=force)
+    
+    if path is None:
+        raise RuntimeError(f"Failed to download {model_file}")
+    
+    return path
+
+
+def get_onnx_segmenter(model_name: str = "small") -> TextSegmenter:
+    """
+    Get a pre-trained text segmenter that uses ONNX for inference.
+    
+    Args:
+        model_name: Name of the model ('small', 'medium', or 'large')
+    
+    Returns:
+        TextSegmenter: A pre-trained text segmenter using ONNX
+    """
+    if not ONNX_AVAILABLE:
+        raise ImportError(
+            "ONNX support is not available. "
+            "Install it with: pip install charboundary[onnx]"
+        )
+    
+    # Get the regular segmenter based on model name
+    if model_name == "small":
+        segmenter = get_small_segmenter()
+    elif model_name == "medium":
+        segmenter = get_default_segmenter()
+    elif model_name == "large":
+        segmenter = get_large_segmenter()
+    else:
+        raise ValueError(f"Unknown model name: {model_name}. Use 'small', 'medium', or 'large'.")
+    
+    # Check if the ONNX model is available
+    onnx_path = get_model_path(model_name, use_onnx=True, download=True)
+    
+    if onnx_path is None:
+        # If not available, try to convert the model to ONNX
+        if segmenter.model.feature_count is None:
+            # Infer feature count from model
+            if hasattr(segmenter.model, 'selected_feature_indices') and segmenter.model.selected_feature_indices:
+                segmenter.model.feature_count = len(segmenter.model.selected_feature_indices)
+            else:
+                # Default values
+                feature_counts = {"small": 19, "medium": 21, "large": 27}
+                segmenter.model.feature_count = feature_counts.get(model_name, 32)
+        
+        # Convert and save model
+        segmenter.to_onnx()
+        onnx_file = os.path.join(ensure_onnx_dir(), f"{model_name}_model.onnx")
+        segmenter.save_onnx(onnx_file)
+    else:
+        # Load the ONNX model
+        segmenter.load_onnx(onnx_path)
+    
+    # Enable ONNX inference
+    segmenter.enable_onnx(True)
+    
+    return segmenter
+
+
+def get_small_onnx_segmenter() -> TextSegmenter:
+    """
+    Get the small pre-trained text segmenter with ONNX inference.
+    
+    Returns:
+        TextSegmenter: A pre-trained text segmenter using the small model with ONNX
+    """
+    return get_onnx_segmenter("small")
+
+
+def get_medium_onnx_segmenter() -> TextSegmenter:
+    """
+    Get the medium pre-trained text segmenter with ONNX inference.
+    
+    Returns:
+        TextSegmenter: A pre-trained text segmenter using the medium model with ONNX
+    """
+    return get_onnx_segmenter("medium")
+
+
+def get_large_onnx_segmenter() -> TextSegmenter:
+    """
+    Get the large pre-trained text segmenter with ONNX inference.
+    
+    Returns:
+        TextSegmenter: A pre-trained text segmenter using the large model with ONNX
+    """
+    return get_onnx_segmenter("large")
+
+
+__version__ = "0.4.0"

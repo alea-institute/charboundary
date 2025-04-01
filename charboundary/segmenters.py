@@ -80,6 +80,10 @@ class SegmenterConfig:
     use_feature_selection: bool = False
     feature_selection_threshold: float = 0.01
     max_features: Optional[int] = None
+    
+    # ONNX parameters
+    use_onnx: bool = False  # Whether to use ONNX for inference if available
+    onnx_optimization_level: int = 1  # ONNX optimization level (0-3)
 
 
 class TextSegmenterProtocol(Protocol):
@@ -219,6 +223,8 @@ class TextSegmenter:
             use_feature_selection: bool = False,
             feature_selection_threshold: float = 0.01,
             max_features: Optional[int] = None,
+            use_onnx: bool = False,
+            onnx_optimization_level: Optional[int] = None,
     ) -> MetricsResult:
         """
         Train a new model for text segmentation.
@@ -256,6 +262,17 @@ class TextSegmenter:
                 If None, use all features above the threshold.
                 Only used if use_feature_selection is True.
                 Defaults to None.
+            use_onnx (bool, optional): Whether to use ONNX for inference if available.
+                If True, the model will be converted to ONNX format after training for faster inference.
+                Requires the 'onnx' optional dependency.
+                Defaults to False.
+            onnx_optimization_level (int, optional): ONNX optimization level (0-3) to use.
+                0: No optimization
+                1: Basic optimizations (default)
+                2: Extended optimizations
+                3: All optimizations including extended memory reuse
+                Only used if use_onnx is True.
+                Defaults to None (which uses the default value from config).
 
         Returns:
             MetricsResult: Training metrics
@@ -278,6 +295,11 @@ class TextSegmenter:
         self.config.use_feature_selection = use_feature_selection
         self.config.feature_selection_threshold = feature_selection_threshold
         self.config.max_features = max_features
+        
+        # Store ONNX settings
+        self.config.use_onnx = use_onnx
+        if onnx_optimization_level is not None:
+            self.config.onnx_optimization_level = onnx_optimization_level
 
         features: FeatureMatrix = []
         labels: PositionLabels = []
@@ -322,6 +344,8 @@ class TextSegmenter:
                 threshold=self.config.threshold,
                 feature_selection_threshold=self.config.feature_selection_threshold,
                 max_features=self.config.max_features,
+                use_onnx=self.config.use_onnx,
+                onnx_optimization_level=self.config.onnx_optimization_level,
                 **(self.config.model_params)
             )
         else:
@@ -329,6 +353,8 @@ class TextSegmenter:
             self.model = create_model(
                 model_type=self.config.model_type,
                 threshold=self.config.threshold,
+                use_onnx=self.config.use_onnx,
+                onnx_optimization_level=self.config.onnx_optimization_level,
                 **(self.config.model_params)
             )
         
@@ -1314,3 +1340,83 @@ class TextSegmenter:
         # Add all predictions and labels for proper evaluation
         all_true_labels.extend(true_labels)
         all_predictions.extend(predictions)
+        
+    def to_onnx(self) -> Optional[bytes]:
+        """
+        Convert the model to ONNX format.
+        
+        Returns:
+            Optional[bytes]: Serialized ONNX model if conversion was successful, None otherwise
+            
+        Raises:
+            ImportError: If ONNX dependencies are not installed
+            ValueError: If the model has not been trained yet
+        """
+        if not self.is_trained:
+            raise ValueError("Model has not been trained yet.")
+            
+        if not hasattr(self.model, 'to_onnx'):
+            raise NotImplementedError("ONNX conversion not supported for this model.")
+            
+        return self.model.to_onnx()
+    
+    def save_onnx(self, path: str) -> bool:
+        """
+        Save the model in ONNX format.
+        
+        Args:
+            path (str): Path to save the ONNX model
+            
+        Returns:
+            bool: True if the model was saved successfully, False otherwise
+            
+        Raises:
+            ImportError: If ONNX is not installed
+            ValueError: If the model has not been trained yet
+        """
+        if not self.is_trained:
+            raise ValueError("Model has not been trained yet.")
+            
+        if not hasattr(self.model, 'save_onnx'):
+            raise NotImplementedError("ONNX conversion not supported for this model.")
+            
+        return self.model.save_onnx(path)
+    
+    def load_onnx(self, path: str) -> bool:
+        """
+        Load an ONNX model.
+        
+        Args:
+            path (str): Path to the ONNX model file
+            
+        Returns:
+            bool: True if the model was loaded successfully, False otherwise
+            
+        Raises:
+            ImportError: If ONNX is not installed
+        """
+        if not hasattr(self.model, 'load_onnx'):
+            raise NotImplementedError("ONNX loading not supported for this model.")
+            
+        return self.model.load_onnx(path)
+    
+    def enable_onnx(self, enable: bool = True) -> bool:
+        """
+        Enable or disable ONNX inference.
+        
+        Args:
+            enable (bool): Whether to enable ONNX inference
+            
+        Returns:
+            bool: True if the operation was successful, False otherwise
+        """
+        if not hasattr(self.model, 'enable_onnx'):
+            raise NotImplementedError("ONNX inference not supported for this model.")
+            
+        result = self.model.enable_onnx(enable)
+        
+        if result:
+            # Update config to match the model's ONNX state
+            self.config.use_onnx = enable
+            
+        return result

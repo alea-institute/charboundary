@@ -2,10 +2,27 @@
 Model definitions and interfaces for the charboundary library.
 """
 
-from typing import List, Dict, Any, Protocol, Optional
+from typing import List, Dict, Any, Protocol, Optional, Union
+from pathlib import Path
+import os
 import sklearn.ensemble
 import sklearn.metrics
 from sklearn.base import BaseEstimator
+
+# Try to import ONNX support (optional dependency)
+try:
+    from charboundary.onnx_support import (
+        check_onnx_available, 
+        convert_to_onnx, 
+        save_onnx_model,
+        load_onnx_model,
+        create_onnx_inference_session,
+        onnx_predict,
+        onnx_predict_proba
+    )
+    ONNX_AVAILABLE = True
+except ImportError:
+    ONNX_AVAILABLE = False
 
 
 class TextSegmentationModel(Protocol):
@@ -33,9 +50,14 @@ class BinaryRandomForestModel:
     """
     A text segmentation model based on RandomForest for binary classification.
     Only distinguishes between boundary (1) and non-boundary (0) positions.
+    
+    This model supports conversion to ONNX format when the 'onnx' optional
+    dependency is installed. ONNX models can be used for faster inference,
+    especially when deployed in production environments.
     """
     
-    def __init__(self, threshold: float = 0.5, **kwargs):
+    def __init__(self, threshold: float = 0.5, use_onnx: bool = False, 
+                 onnx_optimization_level: int = 1, **kwargs):
         """
         Initialize the BinaryRandomForestModel.
         
@@ -44,9 +66,19 @@ class BinaryRandomForestModel:
                                         Values below 0.5 favor recall (fewer false negatives),
                                         values above 0.5 favor precision (fewer false positives).
                                         Defaults to 0.5.
+            use_onnx (bool, optional): Whether to use ONNX for inference if available.
+                                      Defaults to False.
+            onnx_optimization_level (int, optional): ONNX optimization level (0-3).
+                                                    0: No optimization
+                                                    1: Basic optimizations (default)
+                                                    2: Extended optimizations
+                                                    3: All optimizations including extended memory reuse
+                                                    Defaults to 1.
             **kwargs: Parameters to pass to the underlying RandomForestClassifier
         """
         self.threshold = threshold
+        self.use_onnx = use_onnx and ONNX_AVAILABLE
+        self.onnx_optimization_level = onnx_optimization_level
         self.model_params = kwargs.copy() if kwargs else {
             "n_estimators": 100,
             "max_depth": 16,
@@ -60,6 +92,11 @@ class BinaryRandomForestModel:
             self.model_params['class_weight'] = 'balanced'
             
         self.model = sklearn.ensemble.RandomForestClassifier(**self.model_params)
+        
+        # ONNX related attributes
+        self.onnx_model = None
+        self.onnx_session = None
+        self.feature_count = None
         
     @property
     def is_binary(self) -> bool:
@@ -81,8 +118,16 @@ class BinaryRandomForestModel:
         """
         # Ensure binary labels
         y_binary = [1 if label > 0 else 0 for label in y]
+        
+        # Store feature count for ONNX conversion
+        if X and len(X) > 0:
+            self.feature_count = len(X[0])
             
         self.model.fit(X=X, y=y_binary)
+        
+        # Convert to ONNX if requested and available
+        if self.use_onnx and ONNX_AVAILABLE:
+            self.to_onnx()
         
     def predict(self, X: List[List[int]], threshold: Optional[float] = None) -> List[int]:
         """
@@ -100,6 +145,11 @@ class BinaryRandomForestModel:
         # Use custom threshold if provided, otherwise use the model's default
         thresh = threshold if threshold is not None else self.threshold
         
+        # Use ONNX inference if enabled and available
+        if self.use_onnx and self.onnx_session is not None:
+            return onnx_predict(self.onnx_session, X, threshold=thresh)
+        
+        # Otherwise use scikit-learn inference
         if thresh == 0.5:
             # Use the default scikit-learn prediction for the default threshold
             return self.model.predict(X)
@@ -119,6 +169,11 @@ class BinaryRandomForestModel:
         Returns:
             List[List[float]]: Predicted probabilities for each class
         """
+        # Use ONNX inference if enabled and available
+        if self.use_onnx and self.onnx_session is not None:
+            return onnx_predict_proba(self.onnx_session, X)
+            
+        # Otherwise use scikit-learn inference
         return self.model.predict_proba(X).tolist()
         
     def get_metrics(self, X: List[List[int]], y: List[int]) -> Dict[str, Any]:
@@ -200,6 +255,161 @@ class BinaryRandomForestModel:
             List[float]: Feature importance scores
         """
         return self.model.feature_importances_.tolist()
+        
+    def to_onnx(self) -> Optional[bytes]:
+        """
+        Convert the model to ONNX format.
+        
+        Returns:
+            Optional[bytes]: Serialized ONNX model if conversion was successful, None otherwise
+            
+        Raises:
+            ImportError: If ONNX dependencies are not installed
+        """
+        if not ONNX_AVAILABLE:
+            raise ImportError(
+                "ONNX conversion requires 'onnx' and 'skl2onnx' packages. "
+                "Install them with: pip install charboundary[onnx]"
+            )
+            
+        if self.feature_count is None:
+            raise ValueError("Model must be fitted before conversion to ONNX")
+            
+        try:
+            # Convert model to ONNX
+            self.onnx_model = convert_to_onnx(
+                model=self.model,
+                feature_count=self.feature_count,
+                model_name="charboundary_model"
+            )
+            
+            # Create inference session with optimization level
+            self.onnx_session = create_onnx_inference_session(
+                self.onnx_model, 
+                optimization_level=self.onnx_optimization_level
+            )
+            
+            return self.onnx_model
+        except Exception as e:
+            import warnings
+            warnings.warn(f"Failed to convert model to ONNX: {str(e)}")
+            self.use_onnx = False
+            return None
+            
+    def save_onnx(self, file_path: Union[str, Path]) -> bool:
+        """
+        Save the ONNX model to a file.
+        
+        Args:
+            file_path: Path to save the model
+            
+        Returns:
+            bool: True if the model was saved successfully, False otherwise
+            
+        Raises:
+            ImportError: If ONNX is not installed
+            ValueError: If the model has not been converted to ONNX
+        """
+        if not ONNX_AVAILABLE:
+            raise ImportError(
+                "ONNX support requires 'onnx' package. "
+                "Install it with: pip install charboundary[onnx]"
+            )
+            
+        if self.onnx_model is None:
+            # Try to convert first
+            if self.to_onnx() is None:
+                raise ValueError("Model has not been converted to ONNX and conversion failed")
+                
+        try:
+            save_onnx_model(self.onnx_model, file_path)
+            return True
+        except Exception as e:
+            import warnings
+            warnings.warn(f"Failed to save ONNX model: {str(e)}")
+            return False
+            
+    def load_onnx(self, file_path: Union[str, Path]) -> bool:
+        """
+        Load an ONNX model from a file.
+        
+        Args:
+            file_path: Path to the ONNX model file
+            
+        Returns:
+            bool: True if the model was loaded successfully, False otherwise
+            
+        Raises:
+            ImportError: If ONNX is not installed
+        """
+        if not ONNX_AVAILABLE:
+            raise ImportError(
+                "ONNX support requires 'onnx' package. "
+                "Install it with: pip install charboundary[onnx]"
+            )
+            
+        try:
+            self.onnx_model = load_onnx_model(file_path)
+            self.onnx_session = create_onnx_inference_session(
+                self.onnx_model,
+                optimization_level=self.onnx_optimization_level
+            )
+            self.use_onnx = True
+            return True
+        except Exception as e:
+            import warnings
+            warnings.warn(f"Failed to load ONNX model: {str(e)}")
+            self.use_onnx = False
+            return False
+            
+    def enable_onnx(self, enable: bool = True, optimization_level: Optional[int] = None) -> bool:
+        """
+        Enable or disable ONNX inference.
+        
+        Args:
+            enable: Whether to enable ONNX inference
+            optimization_level: ONNX optimization level (0-3) to use.
+                              If provided, update the model's optimization level
+                              and recreate the inference session.
+            
+        Returns:
+            bool: True if the operation was successful, False otherwise
+        """
+        if enable and not ONNX_AVAILABLE:
+            import warnings
+            warnings.warn(
+                "Cannot enable ONNX: ONNX support requires 'onnx' and 'skl2onnx' packages. "
+                "Install them with: pip install charboundary[onnx]"
+            )
+            return False
+        
+        # Update optimization level if provided
+        if optimization_level is not None:
+            if optimization_level not in [0, 1, 2, 3]:
+                import warnings
+                warnings.warn(f"Invalid optimization level: {optimization_level}. Using current level: {self.onnx_optimization_level}")
+            else:
+                self.onnx_optimization_level = optimization_level
+                # Recreate the session with the new optimization level if we have a model
+                if self.onnx_model is not None:
+                    try:
+                        self.onnx_session = create_onnx_inference_session(
+                            self.onnx_model, 
+                            optimization_level=self.onnx_optimization_level
+                        )
+                    except Exception as e:
+                        import warnings
+                        warnings.warn(f"Failed to create ONNX session with optimization level {self.onnx_optimization_level}: {str(e)}")
+                        return False
+            
+        if enable and self.onnx_session is None:
+            # Try to convert model to ONNX if not already done
+            if self.onnx_model is None:
+                if self.to_onnx() is None:
+                    return False
+                    
+        self.use_onnx = enable and ONNX_AVAILABLE and self.onnx_session is not None
+        return True
 
 
 # Factory function for creating models
@@ -228,10 +438,14 @@ class FeatureSelectedRandomForestModel(BinaryRandomForestModel):
     
     The max_features parameter can be used to set an absolute limit on the number of
     features, regardless of their importance scores.
+    
+    This model supports conversion to ONNX format when the 'onnx' optional
+    dependency is installed. ONNX models can be used for faster inference,
+    especially when deployed in production environments.
     """
     
     def __init__(self, feature_selection_threshold: float = 0.01, max_features: int = None, 
-                 threshold: float = 0.5, **kwargs):
+                 threshold: float = 0.5, use_onnx: bool = False, **kwargs):
         """
         Initialize the FeatureSelectedRandomForestModel.
         
@@ -248,9 +462,11 @@ class FeatureSelectedRandomForestModel(BinaryRandomForestModel):
                                         Values below 0.5 favor recall (fewer false negatives),
                                         values above 0.5 favor precision (fewer false positives).
                                         Defaults to 0.5.
+            use_onnx (bool, optional): Whether to use ONNX for inference if available.
+                                      Defaults to False.
             **kwargs: Parameters to pass to the underlying RandomForestClassifier
         """
-        super().__init__(threshold=threshold, **kwargs)
+        super().__init__(threshold=threshold, use_onnx=use_onnx, **kwargs)
         self.feature_selection_threshold = feature_selection_threshold
         self.max_features = max_features
         self.selected_feature_indices = None
@@ -389,7 +605,8 @@ class FeatureSelectedRandomForestModel(BinaryRandomForestModel):
         return result
 
 
-def create_model(model_type: str = "random_forest", threshold: float = 0.5, **kwargs) -> TextSegmentationModel:
+def create_model(model_type: str = "random_forest", threshold: float = 0.5, 
+               use_onnx: bool = False, onnx_optimization_level: int = 1, **kwargs) -> TextSegmentationModel:
     """
     Create a text segmentation model.
     
@@ -401,6 +618,15 @@ def create_model(model_type: str = "random_forest", threshold: float = 0.5, **kw
                                    Values below 0.5 favor recall (fewer false negatives),
                                    values above 0.5 favor precision (fewer false positives).
                                    Defaults to 0.5.
+        use_onnx (bool, optional): Whether to use ONNX for inference if available.
+                                  Requires the 'onnx' optional dependency.
+                                  Defaults to False.
+        onnx_optimization_level (int, optional): ONNX optimization level (0-3).
+                                               0: No optimization
+                                               1: Basic optimizations (default)
+                                               2: Extended optimizations 
+                                               3: All optimizations including extended memory reuse
+                                               Defaults to 1.
         **kwargs: Parameters to pass to the model constructor
         
     Returns:
@@ -410,7 +636,12 @@ def create_model(model_type: str = "random_forest", threshold: float = 0.5, **kw
         ValueError: If the model type is not supported
     """
     if model_type.lower() in ["random_forest", "binary_random_forest"]:
-        return BinaryRandomForestModel(threshold=threshold, **kwargs)
+        return BinaryRandomForestModel(
+            threshold=threshold, 
+            use_onnx=use_onnx, 
+            onnx_optimization_level=onnx_optimization_level,
+            **kwargs
+        )
     elif model_type.lower() in ["feature_selected_rf", "feature_selected_random_forest"]:
         # Extract feature selection parameters
         feature_selection_threshold = kwargs.pop("feature_selection_threshold", 0.01)
@@ -418,7 +649,9 @@ def create_model(model_type: str = "random_forest", threshold: float = 0.5, **kw
         return FeatureSelectedRandomForestModel(
             feature_selection_threshold=feature_selection_threshold,
             max_features=max_features,
-            threshold=threshold, 
+            threshold=threshold,
+            use_onnx=use_onnx,
+            onnx_optimization_level=onnx_optimization_level,
             **kwargs
         )
     else:

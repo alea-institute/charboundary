@@ -1,6 +1,6 @@
 [project]
 name = "charboundary"
-version = "0.3.0"
+version = "0.4.0"
 description = "Fast character-based boundary detection for sentence and paragraphs"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -28,6 +28,11 @@ dependencies = [
 [project.optional-dependencies]
 numpy = [
     "numpy>=1.23.0",
+]
+onnx = [
+    "onnx>=1.15.0",
+    "skl2onnx>=1.16.0",
+    "onnxruntime>=1.16.0",
 ]
 dev = [
     "pytest>=7.0.0",

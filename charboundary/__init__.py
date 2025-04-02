@@ -67,6 +67,10 @@ def get_default_segmenter() -> TextSegmenter:
     accuracy and resource usage. For smaller footprint, use the small model,
     and for potentially higher accuracy, use the large model.
     
+    Note: The medium model is not included in the PyPI package to keep the
+    package size reasonable. It will be automatically downloaded from GitHub
+    when first used.
+    
     Returns:
         TextSegmenter: A pre-trained text segmenter using the medium model
     """
@@ -125,8 +129,9 @@ def get_large_segmenter() -> TextSegmenter:
     The large model has the highest accuracy but also the largest memory footprint
     and may be slower for inference than the small or medium models.
     
-    If the large model is not available locally, this function will attempt to download it
-    from the GitHub repository.
+    Note: The large model is not included in the PyPI package to keep the
+    package size reasonable. It will be automatically downloaded from GitHub
+    when first used (approximately 62MB download).
     
     Returns:
         TextSegmenter: A pre-trained text segmenter using the large model
@@ -251,6 +256,10 @@ def get_medium_onnx_segmenter() -> TextSegmenter:
     """
     Get the medium pre-trained text segmenter with ONNX inference.
     
+    Note: The medium ONNX model is not included in the PyPI package to keep the
+    package size reasonable. It will be automatically downloaded from GitHub
+    when first used (approximately 33MB download).
+    
     Returns:
         TextSegmenter: A pre-trained text segmenter using the medium model with ONNX
     """
@@ -260,6 +269,10 @@ def get_medium_onnx_segmenter() -> TextSegmenter:
 def get_large_onnx_segmenter() -> TextSegmenter:
     """
     Get the large pre-trained text segmenter with ONNX inference.
+    
+    Note: The large ONNX model is not included in the PyPI package to keep the
+    package size reasonable. It will be automatically downloaded from GitHub
+    when first used (approximately 188MB download).
     
     Returns:
         TextSegmenter: A pre-trained text segmenter using the large model with ONNX

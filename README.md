@@ -46,7 +46,11 @@ CharBoundary comes with pre-trained models of different sizes:
 - **Medium** - Default, best performance (7 token context window, 64 trees) - Processes ~280,000 characters/second
 - **Large** - Most accurate (9 token context window, 128 trees) - Processes ~175,000 characters/second
 
-> **Note:** The small and medium models are included in the package distribution. The large model is not included by default to keep the package size reasonable, but will be automatically downloaded from GitHub the first time you use `get_large_segmenter()` if it's not already available locally.
+> **Package Distribution:** To keep the package size reasonable:
+> - **Included in the package:** Only the small model (~2.4MB) 
+> - **Downloaded on demand:** Medium (~9.8MB) and large (~62MB) models are automatically downloaded from GitHub when first used
+
+The download happens automatically and transparently the first time you use functions like `get_default_segmenter()` or `get_large_segmenter()` if the models aren't already available locally.
 
 ### ONNX Acceleration (Up to 2.1x Faster)
 
@@ -245,15 +249,19 @@ All models (including ONNX versions) can be automatically downloaded from the Gi
 ```python
 # These functions download models from GitHub if not found locally
 from charboundary import (
-    get_small_onnx_segmenter,    # Small model with ONNX
-    get_medium_onnx_segmenter,   # Medium model with ONNX
-    get_large_onnx_segmenter     # Large model with ONNX
+    get_small_onnx_segmenter,    # Small model with ONNX (~5MB, included in package)
+    get_medium_onnx_segmenter,   # Medium model with ONNX (~33MB, downloaded on demand)
+    get_large_onnx_segmenter     # Large model with ONNX (~188MB, downloaded on demand)
 )
 
 # Explicitly download an ONNX model
 from charboundary import download_onnx_model
 download_onnx_model("large", force=True)  # Force redownload even if exists
 ```
+
+> **ONNX Package Distribution:** To keep the package size reasonable:
+> - **Included in the package:** Only the small ONNX model (~5MB)
+> - **Downloaded on demand:** Medium (~33MB) and large (~188MB) ONNX models
 
 See the `examples/remote_onnx_example.py` file for a complete example of remote model usage.
 
@@ -282,9 +290,16 @@ The package includes several utility scripts for working with ONNX models:
   python scripts/convert_model_to_onnx.py --input model.skops.xz --output model.onnx
   ```
 
-- `scripts/benchmark_built_in_models.py`: Benchmark sklearn vs ONNX inference for built-in models
+- `scripts/benchmark_onnx_models.py`: Comprehensive benchmarking of ONNX performance
   ```bash
-  python scripts/benchmark_built_in_models.py --model small --runs 20 --batch-size 10000
+  # Benchmark all built-in models with optimal optimization levels
+  python scripts/benchmark_onnx_models.py --built-in-models
+  
+  # Benchmark a specific built-in model with all optimization levels
+  python scripts/benchmark_onnx_models.py --model-name small
+  
+  # Benchmark a custom model file
+  python scripts/benchmark_onnx_models.py --model-file path/to/model.skops.xz
   ```
 
 These scripts are particularly useful for converting pre-trained models to ONNX format and evaluating the performance benefits.

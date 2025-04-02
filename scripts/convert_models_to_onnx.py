@@ -71,8 +71,15 @@ def infer_feature_count(model):
     return 32
 
 
-def convert_segmenter_model(segmenter_getter, model_name):
-    """Convert a segmenter model to ONNX format."""
+def convert_segmenter_model(segmenter_getter, model_name, optimization_level=2):
+    """
+    Convert a segmenter model to ONNX format.
+    
+    Args:
+        segmenter_getter: Function that returns a segmenter
+        model_name: Name of the model (small, medium, large)
+        optimization_level: ONNX optimization level (0-3)
+    """
     print(f"Loading {model_name} model...")
     
     # Get the segmenter
@@ -91,10 +98,15 @@ def convert_segmenter_model(segmenter_getter, model_name):
     model.feature_count = feature_count
     print(f"Set feature count to {feature_count}")
     
+    # Set optimization level
+    model.onnx_optimization_level = optimization_level
+    print(f"Using optimization level: {optimization_level}")
+    
     # Convert to ONNX
     print(f"Converting {model_name} model to ONNX...")
     try:
-        onnx_model = segmenter.to_onnx()
+        # Convert to ONNX
+        onnx_model = model.to_onnx()
         
         if onnx_model is None:
             print(f"Error: ONNX conversion failed for {model_name} model. No model was generated.")
@@ -102,9 +114,9 @@ def convert_segmenter_model(segmenter_getter, model_name):
             
         # Save the ONNX model
         print(f"Saving ONNX model to {output_path}...")
-        if segmenter.save_onnx(output_path):
+        if model.save_onnx(output_path):
             print(f"Successfully saved {model_name} ONNX model to {output_path}")
-            print(f"Model size: {os.path.getsize(output_path) / 1024:.2f} KB")
+            print(f"Model size: {os.path.getsize(output_path) / (1024*1024):.2f} MB")
             return True
         else:
             print(f"Error: Failed to save {model_name} ONNX model.")
@@ -119,16 +131,16 @@ def main():
     """Convert all built-in models to ONNX format."""
     print("Converting charboundary models to ONNX format...")
     
-    # Convert the small model
-    convert_segmenter_model(get_small_segmenter, "small")
+    # Convert the small model - Level 2 (Extended) recommended
+    convert_segmenter_model(get_small_segmenter, "small", optimization_level=2)
     
-    # Convert the medium model (which is the default)
-    convert_segmenter_model(get_default_segmenter, "medium")
+    # Convert the medium model - Level 2 (Extended) recommended
+    convert_segmenter_model(get_default_segmenter, "medium", optimization_level=2)
     
-    # Convert the large model
-    convert_segmenter_model(get_large_segmenter, "large")
+    # Convert the large model - Level 3 (All) recommended
+    convert_segmenter_model(get_large_segmenter, "large", optimization_level=3)
     
-    print("\nAll models have been converted.")
+    print("\nAll models have been converted and saved to charboundary/resources/onnx/")
 
 
 if __name__ == "__main__":

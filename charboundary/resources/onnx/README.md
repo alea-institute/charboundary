@@ -2,7 +2,12 @@
 
 This directory stores ONNX versions of the charboundary models. These models provide faster inference compared to the standard scikit-learn models.
 
-The ONNX models are not stored directly in the git repository due to their size. Instead, they are downloaded automatically when needed from the GitHub repository.
+## Package Distribution
+
+To keep the PyPI package size reasonable:
+
+- **Included in the package**: Only the small model (~5 MB) is included in the PyPI distribution
+- **Downloaded on demand**: Medium (~33 MB) and large (~188 MB) ONNX models are automatically downloaded from GitHub when needed
 
 ## Available Models
 
@@ -12,7 +17,7 @@ The ONNX models are not stored directly in the git repository due to their size.
 
 ## Automatic Download
 
-When you use functions like `get_small_onnx_segmenter()`, the library will:
+When you use functions like `get_medium_onnx_segmenter()` or `get_large_onnx_segmenter()`, the library will:
 1. Check if the ONNX model exists in this directory
 2. If not, attempt to download it from GitHub
 3. If the download fails, try to convert the standard model to ONNX

@@ -1,0 +1,16 @@
+include LICENSE
+include README.md
+include CHANGELOG.md
+include pyproject.toml
+include charboundary/resources/legal_abbreviations.json
+include charboundary/resources/small_model.skops.xz
+include charboundary/resources/onnx/.gitkeep
+include charboundary/resources/onnx/README.md
+include charboundary/resources/onnx/__init__.py
+include charboundary/resources/onnx/small_model.onnx
+
+# Exclude medium and large models to reduce package size
+exclude charboundary/resources/medium_model.skops.xz
+exclude charboundary/resources/large_model.skops.xz
+exclude charboundary/resources/onnx/medium_model.onnx
+exclude charboundary/resources/onnx/large_model.onnx

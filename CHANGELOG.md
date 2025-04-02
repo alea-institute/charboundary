@@ -16,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New example scripts demonstrating ONNX usage and optimization
 - Performance benchmarks for ONNX vs. sklearn models
 - Comprehensive documentation for ONNX features
+- Consolidated benchmark scripts into a single comprehensive tool
+
+### Changed
+- Reduced package size by including only the small model in the distribution
+- Medium and large models are now downloaded from GitHub on first use
+- Improved documentation explaining automatic model downloads
+- Made model loading more robust with better error handling
 
 ## [0.3.0] - 2025-03-31
 

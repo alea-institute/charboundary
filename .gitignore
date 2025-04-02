@@ -173,7 +173,9 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-# ONNX model files are treated as artifacts
-# They are too large for git but kept in the resource directory structure
-*.onnx
-!charboundary/resources/onnx/.gitkeep
+# ONNX model files - using Git LFS to track these
+# NOTE: ONNX models are stored with Git LFS
+# charboundary/resources/onnx/*.onnx
+
+# Archived scripts
+scripts/archive/

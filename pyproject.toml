@@ -45,7 +45,7 @@ dev = [
 
 [tool.setuptools]
 packages = ["charboundary", "charboundary.resources", "charboundary.resources.onnx", "charboundary.cli"]
-package-data = {"charboundary.resources" = ["*.json", "small_model.skops.xz", "medium_model.skops.xz"], "charboundary.resources.onnx" = ["README.md", ".gitkeep"]}
+package-data = {"charboundary.resources" = ["*.json", "small_model.skops.xz"], "charboundary.resources.onnx" = ["README.md", ".gitkeep", "small_model.onnx"]}
 
 [project.scripts]
 charboundary = "charboundary:cli"

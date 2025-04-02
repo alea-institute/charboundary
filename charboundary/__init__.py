@@ -214,7 +214,7 @@ def get_onnx_segmenter(model_name: str = "small") -> TextSegmenter:
                 segmenter.model.feature_count = len(segmenter.model.selected_feature_indices)
             else:
                 # Default values
-                feature_counts = {"small": 19, "medium": 21, "large": 27}
+                feature_counts = {"small": 19, "medium": 21, "large": 25}
                 segmenter.model.feature_count = feature_counts.get(model_name, 32)
         
         # Convert and save model
@@ -269,4 +269,4 @@ def get_large_onnx_segmenter() -> TextSegmenter:
     return get_onnx_segmenter("large")
 
 
-__version__ = "0.4.3"
+__version__ = "0.4.4"

@@ -280,4 +280,4 @@ def get_large_onnx_segmenter() -> TextSegmenter:
     return get_onnx_segmenter("large")
 
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"

@@ -350,9 +350,14 @@ class BinaryRandomForestModel:
             
         try:
             self.onnx_model = load_onnx_model(file_path)
+            
+            # Handle case where model doesn't have onnx_optimization_level attribute
+            # Default to level 1 if not present
+            optimization_level = getattr(self, "onnx_optimization_level", 1)
+            
             self.onnx_session = create_onnx_inference_session(
                 self.onnx_model,
-                optimization_level=self.onnx_optimization_level
+                optimization_level=optimization_level
             )
             self.use_onnx = True
             return True
@@ -382,6 +387,10 @@ class BinaryRandomForestModel:
                 "Install them with: pip install charboundary[onnx]"
             )
             return False
+        
+        # Initialize onnx_optimization_level if it doesn't exist
+        if not hasattr(self, "onnx_optimization_level"):
+            self.onnx_optimization_level = 1
         
         # Update optimization level if provided
         if optimization_level is not None:

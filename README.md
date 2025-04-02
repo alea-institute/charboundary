@@ -94,20 +94,36 @@ Date and ending at 11:59 p.m. Eastern Time on Sep. 15, 2013.
 """
 # Get list of sentences (with default threshold)
 sentences = segmenter.segment_to_sentences(text)
-print(sentences)
-# Output: ["Hello, world!", "This is a test.", "This is another sentence."]
+print("\n-\n".join(sentences))
+```
 
+Output
+```text
+Employee also specifically and forever releases the Acme Inc. (Company) and the Company Parties (except where and
+to the extent that such a release is expressly prohibited or made void by law) from any claims based on unlawful
+employment discrimination or harassment, including, but not limited to, the Federal Age Discrimination in
+Employment Act (29 U.S.C. § 621 et. seq.).
+-
+This release does not include Employee’s right to indemnification,
+and related insurance coverage, under Sec. 7.1.4 or Ex. 1-1 of the Employment Agreement, his right to equity awards,
+or continued exercise, pursuant to the terms of any specific equity award (or similar) agreement between
+Employee and the Company nor to Employee’s right to benefits under any Company plan or program in which
+Employee participated and is due a benefit in accordance with the terms of the plan or program as of the Effective
+Date and ending at 11:59 p.m. Eastern Time on Sep. 15, 2013.
+```
+
+```
 # Control segmentation sensitivity with threshold parameter
-# Lower threshold = more aggressive segmentation (higher recall)
-high_recall_sentences = segmenter.segment_to_sentences(text, threshold=0.3)
-# Default threshold = balanced approach
-balanced_sentences = segmenter.segment_to_sentences(text, threshold=0.5)
-# Higher threshold = conservative segmentation (higher precision)
-high_precision_sentences = segmenter.segment_to_sentences(text, threshold=0.8)
 
-# Get list of paragraphs
-paragraphs = segmenter.segment_to_paragraphs(text)
-print(paragraphs)
+# Lower threshold = more aggressive segmentation (higher recall)
+
+high_recall_sentences = segmenter.segment_to_sentences(text, threshold=0.1)
+
+# Higher threshold = conservative segmentation (higher precision)
+high_precision_sentences = segmenter.segment_to_sentences(text, threshold=0.9)`
+
+print(len(high_recall_sentences), len(high_precision_sentences))
+# Output: 2 1
 ```
 
 You can also choose a specific model size based on your needs:
@@ -129,14 +145,6 @@ The models are optimized for handling:
 - Legal citations (e.g., "Brown v. Board of Education, 347 U.S. 483 (1954)")
 - Multi-line quotes
 - Enumerated lists (partial support)
-
-For example, the models correctly handle quotes in the middle of sentences:
-
-```python
-text = 'Creditors may also typically invoke these laws to void "constructive" fraudulent transfers.'
-sentences = segmenter.segment_to_sentences(text)
-# Output: ['Creditors may also typically invoke these laws to void "constructive" fraudulent transfers.']
-```
 
 ### Training Your Own Model
 
@@ -278,29 +286,30 @@ See the `examples/onnx_model_example.py` file for a complete example of ONNX usa
 
 #### ONNX Utilities
 
-The package includes several utility scripts for working with ONNX models:
+The package includes a comprehensive utility script for working with ONNX models:
 
-- `scripts/convert_models_to_onnx.py`: Convert all built-in models to ONNX format
+- `scripts/onnx_utils.py`: A unified tool for converting, benchmarking, and testing ONNX models
   ```bash
-  python scripts/convert_models_to_onnx.py
-  ```
-
-- `scripts/convert_model_to_onnx.py`: Convert a specific model to ONNX format
-  ```bash
-  python scripts/convert_model_to_onnx.py --input model.skops.xz --output model.onnx
-  ```
-
-- `scripts/benchmark_onnx_models.py`: Comprehensive benchmarking of ONNX performance
-  ```bash
+  # Convert all built-in models to ONNX with optimal optimization levels
+  python scripts/onnx_utils.py convert --all-models
+  
+  # Convert a specific built-in model to ONNX with a custom optimization level
+  python scripts/onnx_utils.py convert --model-name small --optimization-level 2
+  
+  # Convert a custom model file to ONNX
+  python scripts/onnx_utils.py convert --input-file path/to/model.skops.xz --output-file path/to/model.onnx
+  
   # Benchmark all built-in models with optimal optimization levels
-  python scripts/benchmark_onnx_models.py --built-in-models
+  python scripts/onnx_utils.py benchmark --all-models
   
   # Benchmark a specific built-in model with all optimization levels
-  python scripts/benchmark_onnx_models.py --model-name small
+  python scripts/onnx_utils.py benchmark --model-name medium
   
-  # Benchmark a custom model file
-  python scripts/benchmark_onnx_models.py --model-file path/to/model.skops.xz
+  # Test ONNX model functionality and accuracy
+  python scripts/onnx_utils.py test --all-models
   ```
+  
+See [scripts/SCRIPT_USAGE.md](scripts/SCRIPT_USAGE.md) for more detailed examples and output logs of each command.
 
 These scripts are particularly useful for converting pre-trained models to ONNX format and evaluating the performance benefits.
 

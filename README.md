@@ -4,7 +4,7 @@ A modular library for segmenting text into sentences and paragraphs based on cha
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 ![Python Versions](https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue)
-![Version](https://img.shields.io/badge/version-0.3.0-blue)
+![Version](https://img.shields.io/badge/version-0.4.2-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## Features
@@ -44,11 +44,11 @@ CharBoundary comes with pre-trained models of different sizes:
 
 - **Small** - Small footprint (5 token context window, 32 trees) - Processes ~85,000 characters/second
 - **Medium** - Default, best performance (7 token context window, 64 trees) - Processes ~280,000 characters/second
-- **Large** - Most accurate (9 token context window, 128 trees) - Processes ~175,000 characters/second
+- **Large** - Most accurate (9 token context window, 256 trees) - Processes ~175,000 characters/second
 
 > **Package Distribution:** To keep the package size reasonable:
-> - **Included in the package:** Only the small model (~2.4MB) 
-> - **Downloaded on demand:** Medium (~9.8MB) and large (~62MB) models are automatically downloaded from GitHub when first used
+> - **Included in the package:** Only the small model (~1MB) 
+> - **Downloaded on demand:** Medium (~2MB) and large (~6MB) models are automatically downloaded from GitHub when first used
 
 The download happens automatically and transparently the first time you use functions like `get_default_segmenter()` or `get_large_segmenter()` if the models aren't already available locally.
 
@@ -72,7 +72,7 @@ segmenter = get_large_onnx_segmenter()
 sentences = segmenter.segment_to_sentences(your_text)
 ```
 
-The ONNX acceleration provides up to 2.1x performance improvement with zero impact on result quality. See `examples/onnx_optimization_simple.py` for a complete benchmark example.
+The ONNX acceleration provides up to 2.1x performance improvement with zero impact on result quality. ONNX models are now XZ-compressed by default (60% smaller files). See `examples/onnx_optimization_simple.py` for a complete benchmark example.
 
 ```python
 from charboundary import get_default_segmenter
@@ -240,12 +240,13 @@ segmenter = TextSegmenter(
 segmenter = get_default_segmenter()
 segmenter.model.to_onnx()  # Converts the model to ONNX format
 
-# Save the ONNX model to a file
-segmenter.model.save_onnx("model.onnx")
+# Save the ONNX model to a file (now with XZ compression by default)
+segmenter.model.save_onnx("model.onnx")  # Creates model.onnx.xz by default
+segmenter.model.save_onnx("model.onnx", compress=False)  # No compression
 
-# Load an ONNX model with specified optimization level
+# Load an ONNX model with specified optimization level (handles compressed files automatically)
 new_segmenter = get_default_segmenter()
-new_segmenter.model.load_onnx("model.onnx")
+new_segmenter.model.load_onnx("model.onnx")  # Works with both model.onnx or model.onnx.xz
 new_segmenter.model.enable_onnx(True, optimization_level=2)  # Enable ONNX with extended optimizations
 
 # Run inference with the ONNX model
@@ -268,8 +269,8 @@ download_onnx_model("large", force=True)  # Force redownload even if exists
 ```
 
 > **ONNX Package Distribution:** To keep the package size reasonable:
-> - **Included in the package:** Only the small ONNX model (~5MB)
-> - **Downloaded on demand:** Medium (~33MB) and large (~188MB) ONNX models
+> - **Included in the package:** Only the small ONNX model (~2MB, XZ compressed)
+> - **Downloaded on demand:** Medium (~13MB) and large (~75MB) XZ compressed ONNX models
 
 See the `examples/remote_onnx_example.py` file for a complete example of remote model usage.
 
@@ -626,19 +627,19 @@ The library includes a profiling script to identify performance bottlenecks:
 
 ```bash
 # Profile all operations (training, inference, model loading)
-python scripts/profile_model.py --mode all
+python scripts/benchmark/profile_model.py --mode all
 
 # Profile just the training process
-python scripts/profile_model.py --mode train --samples 500
+python scripts/benchmark/profile_model.py --mode train --samples 500
 
 # Profile just the inference process
-python scripts/profile_model.py --mode inference --iterations 200
+python scripts/benchmark/profile_model.py --mode inference --iterations 200
 
 # Profile model loading
-python scripts/profile_model.py --mode load --model charboundary/resources/medium_model.skops.xz
+python scripts/benchmark/profile_model.py --mode load --model charboundary/resources/medium_model.skops.xz
 
 # Save profiling results to a file
-python scripts/profile_model.py --output profile_results.txt
+python scripts/benchmark/profile_model.py --output profile_results.txt
 ```
 
 ## Performance
@@ -665,9 +666,9 @@ Key optimizations:
 
 You can run the benchmark tests yourself with the included scripts:
 ```bash
-python scripts/test_small_model.py
-python scripts/test_medium_model.py
-python scripts/test_large_model.py
+python scripts/test/test_small_model.py
+python scripts/test/test_medium_model.py
+python scripts/test/test_large_model.py
 ```
 
 ## Changelog

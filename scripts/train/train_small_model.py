@@ -78,7 +78,7 @@ def train_default_model():
     # Save with compression for smaller file size
     original_size = model_path.stat().st_size if model_path.exists() else 0
     
-    segmenter.save(str(model_path), compress=True, compression_level=9)
+    segmenter.save(str(model_path), compress=True, compression_level=6)
     
     # Check the compression ratio achieved
     compressed_path = model_path.with_suffix(model_path.suffix + '.xz')

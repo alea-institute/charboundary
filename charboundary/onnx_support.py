@@ -6,13 +6,12 @@ and to run inference using ONNX runtime.
 """
 
 import os
-from typing import List, Dict, Any, Optional, Union, Tuple
+from typing import List, Any, Union
 from pathlib import Path
 import warnings
 
 # Import error handling for optional dependencies
 try:
-    import onnx
     import skl2onnx
     from skl2onnx.common.data_types import FloatTensorType
     ONNX_AVAILABLE = True
@@ -70,13 +69,14 @@ def convert_to_onnx(model: Any, feature_count: int, model_name: str = "charbound
         raise ValueError(f"Failed to convert model to ONNX format: {str(e)}")
 
 
-def save_onnx_model(onnx_model: bytes, file_path: Union[str, Path]) -> None:
+def save_onnx_model(onnx_model: bytes, file_path: Union[str, Path], compress: bool = True) -> None:
     """
-    Save an ONNX model to disk.
+    Save an ONNX model to disk, optionally with XZ compression.
     
     Args:
         onnx_model: Serialized ONNX model
         file_path: Path to save the model
+        compress: Whether to compress the model with XZ (default: True)
         
     Raises:
         ImportError: If ONNX is not installed
@@ -92,16 +92,23 @@ def save_onnx_model(onnx_model: bytes, file_path: Union[str, Path]) -> None:
         # Ensure parent directory exists
         os.makedirs(os.path.dirname(os.path.abspath(file_path)), exist_ok=True)
         
-        # Write to file
-        with open(file_path, "wb") as f:
-            f.write(onnx_model)
+        # Check if we should compress
+        if compress and not (str(file_path).endswith('.xz') or str(file_path).endswith('.lzma')):
+            import lzma
+            # Compressed write to file
+            with lzma.open(str(file_path) + '.xz', "wb") as f:
+                f.write(onnx_model)
+        else:
+            # Standard write to file
+            with open(file_path, "wb") as f:
+                f.write(onnx_model)
     except Exception as e:
         raise IOError(f"Failed to save ONNX model to {file_path}: {str(e)}")
 
 
 def load_onnx_model(file_path: Union[str, Path]) -> bytes:
     """
-    Load an ONNX model from disk.
+    Load an ONNX model from disk, handles compressed (.xz, .lzma) files automatically.
     
     Args:
         file_path: Path to the ONNX model file
@@ -120,14 +127,38 @@ def load_onnx_model(file_path: Union[str, Path]) -> bytes:
             "Install it with: pip install charboundary[onnx]"
         )
     
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"ONNX model file not found: {file_path}")
+    # Convert to string for easier handling
+    path_str = str(file_path)
     
-    try:
-        with open(file_path, "rb") as f:
-            return f.read()
-    except Exception as e:
-        raise IOError(f"Failed to load ONNX model from {file_path}: {str(e)}")
+    # Check for XZ or LZMA compression
+    is_compressed = path_str.endswith('.xz') or path_str.endswith('.lzma')
+    
+    # Try original path first
+    if os.path.exists(path_str):
+        try:
+            if is_compressed:
+                import lzma
+                with lzma.open(path_str, "rb") as f:
+                    return f.read()
+            else:
+                with open(path_str, "rb") as f:
+                    return f.read()
+        except Exception as e:
+            raise IOError(f"Failed to load ONNX model from {path_str}: {str(e)}")
+    
+    # If not found, try adding compression extension
+    if not is_compressed:
+        compressed_path = path_str + '.xz'
+        if os.path.exists(compressed_path):
+            try:
+                import lzma
+                with lzma.open(compressed_path, "rb") as f:
+                    return f.read()
+            except Exception as e:
+                raise IOError(f"Failed to load compressed ONNX model from {compressed_path}: {str(e)}")
+    
+    # If we reach here, file was not found
+    raise FileNotFoundError(f"ONNX model file not found: {file_path} (also tried with .xz extension)")
 
 
 def create_onnx_inference_session(onnx_model: bytes, optimization_level: int = 1) -> Any:

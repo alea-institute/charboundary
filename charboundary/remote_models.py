@@ -8,8 +8,7 @@ when they are not available locally.
 import os
 import sys
 import urllib.request
-from typing import Dict, Optional, Tuple, Union
-from pathlib import Path
+from typing import Optional
 import logging
 
 # Configure logging
@@ -30,9 +29,9 @@ MODEL_URLS = {
     "large_model.skops.xz": f"{GITHUB_RAW_BASE}/charboundary/resources/large_model.skops.xz",
     
     # ONNX models
-    "small_model.onnx": f"{GITHUB_RAW_BASE}/charboundary/resources/onnx/small_model.onnx",
-    "medium_model.onnx": f"{GITHUB_RAW_BASE}/charboundary/resources/onnx/medium_model.onnx",
-    "large_model.onnx": f"{GITHUB_RAW_BASE}/charboundary/resources/onnx/large_model.onnx"
+    "small_model.onnx": f"{GITHUB_RAW_BASE}/charboundary/resources/onnx/small_model.onnx.xz",
+    "medium_model.onnx": f"{GITHUB_RAW_BASE}/charboundary/resources/onnx/medium_model.onnx.xz",
+    "large_model.onnx": f"{GITHUB_RAW_BASE}/charboundary/resources/onnx/large_model.onnx.xz"
 }
 
 # Model sizes in megabytes (approximate) for progress reporting
@@ -40,9 +39,9 @@ MODEL_SIZES = {
     "small_model.skops.xz": 1,      # ~1 MB
     "medium_model.skops.xz": 2,     # ~2 MB
     "large_model.skops.xz": 6,      # ~6 MB
-    "small_model.onnx": 5,          # ~5 MB
-    "medium_model.onnx": 33,        # ~33 MB
-    "large_model.onnx": 188         # ~188 MB
+    "small_model.onnx": 2,          # ~2 MB compressed (~5 MB uncompressed)
+    "medium_model.onnx": 13,        # ~13 MB compressed (~33 MB uncompressed)
+    "large_model.onnx": 75          # ~75 MB compressed (~188 MB uncompressed)
 }
 
 
@@ -171,10 +170,16 @@ def download_model(model_name: str, force: bool = False) -> Optional[str]:
     if model_name.endswith('.onnx'):
         # ONNX models go in the onnx subdirectory
         target_dir = ensure_onnx_dir()
+        
+        # Handle compressed ONNX models from GitHub
+        url = MODEL_URLS[model_name]
+        if url.endswith('.xz'):
+            target_path = os.path.join(target_dir, model_name + '.xz')
+        else:
+            target_path = os.path.join(target_dir, model_name)
     else:
         target_dir = get_resource_dir()
-        
-    target_path = os.path.join(target_dir, model_name)
+        target_path = os.path.join(target_dir, model_name)
     
     # Skip download if file exists and force is not set
     if os.path.exists(target_path) and not force:
@@ -229,10 +234,8 @@ def get_model_path(model_name: str, use_onnx: bool = False, download: bool = Tru
     # Add appropriate extension
     if use_onnx:
         file_name = f"{base_name}_model.onnx"
-        extensions = ['.onnx']
     else:
         file_name = f"{base_name}_model.skops.xz"
-        extensions = ['.skops', '.skops.xz', '.skops.lzma']
     
     # Check if model exists locally
     local_path = find_local_model(file_name)

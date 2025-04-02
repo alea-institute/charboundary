@@ -3,7 +3,6 @@ CharBoundary: A modular library for segmenting text into sentences and paragraph
 """
 
 import os
-import json
 import sys
 import warnings
 
@@ -29,7 +28,6 @@ from charboundary.remote_models import (
     get_model_path,
     download_model,
     get_resource_dir,
-    get_onnx_dir,
     ensure_onnx_dir
 )
 
@@ -41,7 +39,8 @@ __all__ = [
     'get_default_segmenter', 'get_small_segmenter', 'get_large_segmenter',
     'get_onnx_segmenter', 'get_small_onnx_segmenter', 'get_medium_onnx_segmenter', 'get_large_onnx_segmenter',
     'download_onnx_model',
-    'cli'
+    'cli',
+    'get_onnx_dir'
 ]
 
 # Check if ONNX is available and warn if needed
@@ -55,7 +54,6 @@ if not ONNX_AVAILABLE:
 def cli():
     """Run the charboundary command-line interface."""
     from charboundary.cli.main import main
-    import sys
     sys.exit(main())
 
 # Create a function to load the default model
@@ -74,9 +72,6 @@ def get_default_segmenter() -> TextSegmenter:
     Returns:
         TextSegmenter: A pre-trained text segmenter using the medium model
     """
-    from charboundary.models import BinaryRandomForestModel
-    from charboundary.segmenters import SegmenterConfig
-    from skops.io import get_untrusted_types
     
     # Try to get model path
     model_path = get_model_path("medium", use_onnx=False, download=True)
@@ -103,9 +98,6 @@ def get_small_segmenter() -> TextSegmenter:
     Returns:
         TextSegmenter: A pre-trained text segmenter using the small model
     """
-    from charboundary.models import BinaryRandomForestModel
-    from charboundary.segmenters import SegmenterConfig
-    from skops.io import get_untrusted_types
     
     # Try to get model path
     model_path = get_model_path("small", use_onnx=False, download=True)
@@ -136,9 +128,6 @@ def get_large_segmenter() -> TextSegmenter:
     Returns:
         TextSegmenter: A pre-trained text segmenter using the large model
     """
-    from charboundary.models import BinaryRandomForestModel
-    from charboundary.segmenters import SegmenterConfig
-    from skops.io import get_untrusted_types
     
     # Try to get model path
     model_path = get_model_path("large", use_onnx=False, download=True)
@@ -280,4 +269,4 @@ def get_large_onnx_segmenter() -> TextSegmenter:
     return get_onnx_segmenter("large")
 
 
-__version__ = "0.4.1"
+__version__ = "0.4.2"

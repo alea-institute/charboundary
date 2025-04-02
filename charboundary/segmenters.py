@@ -10,15 +10,12 @@ import tempfile
 from dataclasses import dataclass, field
 from typing import (
     List, 
-    Tuple, 
     Dict, 
     Any, 
     Optional, 
     Union, 
     Protocol, 
-    TypeAlias, 
     Iterator,
-    Literal,
     TypedDict
 )
 import random
@@ -32,14 +29,12 @@ from charboundary.constants import (
     TERMINAL_SENTENCE_CHAR_LIST, 
     TERMINAL_PARAGRAPH_CHAR_LIST,
     DEFAULT_ABBREVIATIONS,
-    PRIMARY_TERMINATORS,
-    SECONDARY_TERMINATORS
+    PRIMARY_TERMINATORS
 )
 from charboundary.encoders import CharacterEncoder, CharacterEncoderProtocol
 from charboundary.features import (
     FeatureExtractor, 
     FeatureExtractorProtocol, 
-    FeatureVector,
     FeatureMatrix,
     PositionLabels
 )
@@ -463,7 +458,6 @@ class TextSegmenter:
         }
 
         # Determine if we need to add a compression extension
-        original_path = path
         compressed_path = None
         if compress and not (path.endswith('.xz') or path.endswith('.lzma')):
             compressed_path = path + '.xz'
@@ -537,7 +531,6 @@ class TextSegmenter:
             TextSegmenter: Loaded TextSegmenter instance
         """
         # Check for compression extensions and try alternative paths if needed
-        original_path = path
         paths_to_try = [path]
         
         # If the path doesn't end with a compression extension, also try with extensions
@@ -545,8 +538,7 @@ class TextSegmenter:
             paths_to_try.append(path + '.xz')
             paths_to_try.append(path + '.lzma')
         
-        # Keep track of the actual path that worked
-        successful_path = None
+        # Initialize variables for loading
         data = None
         last_exception = None
             
@@ -674,7 +666,6 @@ class TextSegmenter:
                             data = pickle.load(f)
                             
                 # If we reach here, we successfully loaded the data
-                successful_path = try_path
                 break
                     
             except Exception as e:
@@ -705,8 +696,6 @@ class TextSegmenter:
                         # Regular file
                         with open(try_path, "rb") as f:
                             data = pickle.load(f)
-                            
-                    successful_path = try_path
                     break
                 except Exception as e:
                     last_exception = e
@@ -1056,7 +1045,6 @@ class TextSegmenter:
             
         # More efficient string splitting and processing
         # Pre-compute tag lengths for performance
-        sent_tag_len = len(SENTENCE_TAG)
         para_tag_len = len(PARAGRAPH_TAG)
         
         # Split by sentence tag, but handle paragraph tags properly
@@ -1139,7 +1127,6 @@ class TextSegmenter:
             
         # More efficient string splitting and processing
         # Pre-compute tag length for performance
-        sent_tag_len = len(SENTENCE_TAG)
         
         # First remove all sentence tags for paragraph processing
         text_without_sentences = segmented_text.replace(SENTENCE_TAG, '')
@@ -1360,12 +1347,13 @@ class TextSegmenter:
             
         return self.model.to_onnx()
     
-    def save_onnx(self, path: str) -> bool:
+    def save_onnx(self, path: str, compress: bool = True) -> bool:
         """
-        Save the model in ONNX format.
+        Save the model in ONNX format, optionally with XZ compression.
         
         Args:
             path (str): Path to save the ONNX model
+            compress (bool): Whether to compress the model with XZ (default: True)
             
         Returns:
             bool: True if the model was saved successfully, False otherwise
@@ -1380,7 +1368,7 @@ class TextSegmenter:
         if not hasattr(self.model, 'save_onnx'):
             raise NotImplementedError("ONNX conversion not supported for this model.")
             
-        return self.model.save_onnx(path)
+        return self.model.save_onnx(path, compress=compress)
     
     def load_onnx(self, path: str) -> bool:
         """

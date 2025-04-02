@@ -4,15 +4,12 @@ Model definitions and interfaces for the charboundary library.
 
 from typing import List, Dict, Any, Protocol, Optional, Union
 from pathlib import Path
-import os
 import sklearn.ensemble
 import sklearn.metrics
-from sklearn.base import BaseEstimator
 
 # Try to import ONNX support (optional dependency)
 try:
     from charboundary.onnx_support import (
-        check_onnx_available, 
         convert_to_onnx, 
         save_onnx_model,
         load_onnx_model,
@@ -79,6 +76,8 @@ class BinaryRandomForestModel:
         self.threshold = threshold
         self.use_onnx = use_onnx and ONNX_AVAILABLE
         self.onnx_optimization_level = onnx_optimization_level
+        self.onnx_model = None
+        self.onnx_session = None
         self.model_params = kwargs.copy() if kwargs else {
             "n_estimators": 100,
             "max_depth": 16,
@@ -296,12 +295,13 @@ class BinaryRandomForestModel:
             self.use_onnx = False
             return None
             
-    def save_onnx(self, file_path: Union[str, Path]) -> bool:
+    def save_onnx(self, file_path: Union[str, Path], compress: bool = True) -> bool:
         """
-        Save the ONNX model to a file.
+        Save the ONNX model to a file, optionally with XZ compression.
         
         Args:
             file_path: Path to save the model
+            compress: Whether to compress the model with XZ (default: True)
             
         Returns:
             bool: True if the model was saved successfully, False otherwise
@@ -322,7 +322,7 @@ class BinaryRandomForestModel:
                 raise ValueError("Model has not been converted to ONNX and conversion failed")
                 
         try:
-            save_onnx_model(self.onnx_model, file_path)
+            save_onnx_model(self.onnx_model, file_path, compress=compress)
             return True
         except Exception as e:
             import warnings

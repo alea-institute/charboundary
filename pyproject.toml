@@ -9,7 +9,7 @@ authors = [
     { name = "ALEA Institute", email = "hello@aleainstitute.ai" }
 ]
 keywords = ["nlp", "text segmentation", "sentence boundary detection", "paragraph detection", "text processing"]
-urls = { Repository = "https://github.com/aleainstitute/charboundary" }
+urls = { Repository = "https://github.com/alea-institute/charboundary" }
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",

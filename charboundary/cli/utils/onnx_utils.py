@@ -163,8 +163,17 @@ def convert_segmenter_model(model_getter, model_name: str, output_path: Optional
         # Save the ONNX model
         print(f"Saving ONNX model to {output_path}...")
         if model.save_onnx(output_path):
-            print(f"Successfully saved {model_name} ONNX model to {output_path}")
-            print(f"Model size: {os.path.getsize(output_path) / (1024*1024):.2f} MB")
+            # Check for both the file and the compressed version
+            if os.path.exists(output_path):
+                file_path = output_path
+            elif os.path.exists(f"{output_path}.xz"):
+                file_path = f"{output_path}.xz"
+            else:
+                print(f"Warning: Model saved successfully but file not found at {output_path} or {output_path}.xz")
+                return True
+                
+            print(f"Successfully saved {model_name} ONNX model to {file_path}")
+            print(f"Model size: {os.path.getsize(file_path) / (1024*1024):.2f} MB")
             return True
         else:
             print(f"Error: Failed to save {model_name} ONNX model.")
@@ -262,8 +271,17 @@ def convert_custom_model(input_path: str, output_path: str, feature_count: Optio
         # Save the ONNX model
         print(f"Saving ONNX model to {output_path}...")
         if model.save_onnx(output_path):
-            print(f"Successfully saved ONNX model to {output_path}")
-            print(f"Model size: {os.path.getsize(output_path) / (1024*1024):.2f} MB")
+            # Check for both the file and the compressed version
+            if os.path.exists(output_path):
+                file_path = output_path
+            elif os.path.exists(f"{output_path}.xz"):
+                file_path = f"{output_path}.xz"
+            else:
+                print(f"Warning: Model saved successfully but file not found at {output_path} or {output_path}.xz")
+                return True
+                
+            print(f"Successfully saved ONNX model to {file_path}")
+            print(f"Model size: {os.path.getsize(file_path) / (1024*1024):.2f} MB")
             return True
         else:
             print("Error: Failed to save ONNX model.")

@@ -29,7 +29,7 @@ if not ONNX_AVAILABLE:
 
 # Import charboundary modules
 from charboundary.models import create_model
-from charboundary.features import extract_features
+# Fix the import - no need for extract_features in this example
 
 
 def generate_dummy_data(num_samples=1000, feature_dim=20):

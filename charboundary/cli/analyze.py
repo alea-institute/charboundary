@@ -2,10 +2,8 @@
 Analysis command for the charboundary CLI.
 """
 
-import argparse
 import json
 import os
-from typing import Dict, Any, List
 
 from charboundary.segmenters import TextSegmenter
 

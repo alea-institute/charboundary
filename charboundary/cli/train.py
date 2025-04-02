@@ -2,11 +2,9 @@
 Training command for the charboundary CLI.
 """
 
-import argparse
 import json
 import os
 import time
-from typing import Dict, Any
 
 from charboundary.segmenters import TextSegmenter
 

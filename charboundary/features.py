@@ -2,8 +2,7 @@
 Feature extraction functionality for the charboundary library.
 """
 
-from typing import List, Tuple, Optional, Protocol, TypeAlias, Literal, Dict, Any
-from collections.abc import Sequence
+from typing import List, Tuple, Optional, Protocol, TypeAlias
 from functools import lru_cache
 import multiprocessing
 from multiprocessing import Pool
@@ -20,7 +19,6 @@ from charboundary.constants import (
     SENTENCE_TAG, 
     PARAGRAPH_TAG, 
     TERMINAL_SENTENCE_CHAR_LIST, 
-    TERMINAL_PARAGRAPH_CHAR_LIST,
     DEFAULT_ABBREVIATIONS,
     PRIMARY_TERMINATORS,
     SECONDARY_TERMINATORS,
@@ -476,9 +474,6 @@ class FeatureExtractor:
         if positions is not None and len(position_indices) < n / 4:  # Only compute for positions if less than 25% of text
             # More efficient to compute features only for needed positions
             num_positions = len(position_indices)
-            
-            # Create a mapping from position indices to array indices for efficient lookup
-            pos_to_idx = {pos: idx for idx, pos in enumerate(position_indices)}
             
             # Pre-compute feature flags only for positions we care about
             abbr_flags = np.array([self.is_in_abbreviation(text, i) for i in position_indices], dtype=np.int8)

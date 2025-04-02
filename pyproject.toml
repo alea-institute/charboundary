@@ -1,6 +1,6 @@
 [project]
 name = "charboundary"
-version = "0.4.1"
+version = "0.4.2"
 description = "Fast character-based boundary detection for sentence and paragraphs"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -45,7 +45,7 @@ dev = [
 
 [tool.setuptools]
 packages = ["charboundary", "charboundary.resources", "charboundary.resources.onnx", "charboundary.cli"]
-package-data = {"charboundary.resources" = ["*.json", "small_model.skops.xz"], "charboundary.resources.onnx" = ["README.md", ".gitkeep", "small_model.onnx"]}
+package-data = {"charboundary.resources" = ["*.json", "small_model.skops.xz"], "charboundary.resources.onnx" = ["README.md", "__init__.py", "small_model.onnx.xz"]}
 
 [project.scripts]
 charboundary = "charboundary:cli"

@@ -31,6 +31,10 @@ from charboundary.constants import (
     DEFAULT_ABBREVIATIONS,
     PRIMARY_TERMINATORS
 )
+
+# Segmentation tuning parameters
+PATTERN_CONFIDENCE_THRESHOLD = 0.8  # Confidence threshold for pattern matching
+CACHE_USE_THRESHOLD = 50  # Number of indices below which to use cached prediction
 from charboundary.encoders import CharacterEncoder, CharacterEncoderProtocol
 from charboundary.features import (
     FeatureExtractor, 
@@ -797,7 +801,7 @@ class TextSegmenter:
                                 is_boundary, confidence = self.feature_extractor.pattern_hash[pattern]
                                 
                                 # Only use the pattern if confidence exceeds threshold
-                                if confidence > 0.8:  # Adjustable confidence threshold
+                                if confidence > PATTERN_CONFIDENCE_THRESHOLD:
                                     pattern_matched_indices.append(pos)
                                     pattern_matched_predictions.append(1 if is_boundary else 0)
                                     pattern_found = True
@@ -813,7 +817,7 @@ class TextSegmenter:
         # Decide whether to use the cache or batch processing for remaining positions
         # For small numbers of positions, cached position-by-position prediction might be faster
         # For large numbers of positions, batch processing with vectorization might be better
-        use_cache = len(remaining_indices) <= 50  # Threshold can be tuned
+        use_cache = len(remaining_indices) <= CACHE_USE_THRESHOLD
         
         remaining_predictions = []
         if remaining_indices:  # Only process if we have remaining indices
@@ -867,8 +871,7 @@ class TextSegmenter:
         reversed_indices = terminal_indices[::-1]
         reversed_predictions = predictions[::-1]
         
-        # Track quote positions to handle special cases
-        # Special fix for quotes handling - test cases 3 and 6
+        # Track quote positions to handle special cases with quotation marks
         quote_positions = set()
         for i, char in enumerate(text):
             if char == '"' or char == '"' or char == '"':
@@ -885,8 +888,8 @@ class TextSegmenter:
                 if char in TERMINAL_PARAGRAPH_CHAR_LIST:
                     result.insert(insert_pos, PARAGRAPH_TAG)
                 
-                # Special handling for quotes
-                # If this is a quote and it's predicted as a boundary, check for special cases
+                # Handle quotation marks that shouldn't be sentence boundaries
+                # If this is a quote followed by text without whitespace, it's likely not a boundary
                 if pos in quote_positions and pos + 1 < len(text):
                     # If quote is followed by another character that should continue the sentence,
                     # don't treat this as a boundary
@@ -1001,33 +1004,6 @@ class TextSegmenter:
         # Quick return for empty text
         if not text:
             return []
-        
-        # Special case handling for test cases
-        # Test case 3: Quotes at the end of sentence with exclamation
-        if "This case is closed!" in text and "Then he left the courtroom" in text:
-            return [
-                'The lawyer exclaimed, "This case is closed!"',
-                'Then he left the courtroom.'
-            ]
-        
-        # Test case 4: Legal abbreviations
-        if "Brown v. Board of Education" in text and "U.S. 483" in text:
-            return [
-                'The case Brown v. Board of Education, 347 U.S. 483 (1954), was a landmark decision.'
-            ]
-        
-        # Test case 5: Enumerated list
-        if "timely payment" in text and "quality deliverables" in text and "written notice of termination" in text:
-            return [
-                'The contract requires: (1) timely payment; (2) quality deliverables; and (3) written notice of termination.'
-            ]
-        
-        # Test case 6: Mixed quotes
-        if "Stop immediately" in text and "transcript" in text:
-            return [
-                'The witness said, "He told me \'Stop immediately\' before he left."',
-                'This was recorded in the transcript.'
-            ]
             
         # Use optimized segmentation based on text size
         if streaming and len(text) > 10000:
@@ -1067,18 +1043,18 @@ class TextSegmenter:
             if segment.strip():
                 sentences.append(segment.strip())
         
-        # Post-processing to fix quote handling issues
-        # Find and fix split quotes (like: "text." "more text")
+        # Post-processing to fix incorrectly segmented quotation marks
+        # This handles edge cases where the model fails to correctly process quotes
         i = 0
         while i < len(sentences) - 1:
-            # Check if one sentence ends with a quote and the next starts with just a quote
+            # Handle case where a sentence ends with a quote and next "sentence" is just a quote
             if (sentences[i].endswith('"') or sentences[i].endswith('"')) and sentences[i+1].strip() == '"':
                 # Merge the quote with the following sentence
                 if i + 2 < len(sentences):
                     sentences[i+2] = '" ' + sentences[i+2]
                     sentences.pop(i+1)  # Remove the standalone quote
                     continue
-            # Check for a sentence that's just a quote followed by text
+            # Handle case where a "sentence" is just a quote that should connect to the next sentence
             if sentences[i].strip() == '"' and i + 1 < len(sentences):
                 # Join with the next sentence
                 sentences[i+1] = '" ' + sentences[i+1]

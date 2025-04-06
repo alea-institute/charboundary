@@ -10,9 +10,9 @@ from charboundary.constants import SENTENCE_TAG, PARAGRAPH_TAG
 
 
 def load_jsonl(
-        path: str,
-        key: str = "text",
-        max_samples: Optional[int] = None,
+    path: str,
+    key: str = "text",
+    max_samples: Optional[int] = None,
 ) -> List[str]:
     """
     Load texts from a gzipped JSONL file.
@@ -38,9 +38,9 @@ def load_jsonl(
 
 
 def save_jsonl(
-        data: List[Dict[str, Any]],
-        path: str,
-        compress: bool = True,
+    data: List[Dict[str, Any]],
+    path: str,
+    compress: bool = True,
 ) -> None:
     """
     Save data to a JSONL file.
@@ -71,15 +71,15 @@ def annotate_text(sentences: List[str]) -> str:
         str: Annotated text with sentence tags and paragraph tags between each sentence
     """
     result = []
-    
+
     for sentence in sentences:
         result.append(sentence)
         result.append(SENTENCE_TAG)
-    
+
     # Add paragraph tag at the end
     if result:
         result.append(PARAGRAPH_TAG)
-        
+
     return "".join(result)
 
 

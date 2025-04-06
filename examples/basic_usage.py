@@ -65,12 +65,34 @@ def demonstrate_basic_usage():
         print("\nSentences:")
         for j, sentence in enumerate(sentences):
             print(f"  {j+1}. {sentence}")
+            
+        # Get sentences with character spans
+        sentences_with_spans = segmenter.segment_to_sentences_with_spans(example)
+        print("\nSentences with character spans:")
+        for j, (sentence, span) in enumerate(sentences_with_spans):
+            start, end = span
+            print(f"  {j+1}. {sentence}")
+            print(f"     Span: ({start}, {end})")
+        
+        # Get only sentence spans
+        spans = segmenter.get_sentence_spans(example)
+        print("\nSentence spans:")
+        for j, (start, end) in enumerate(spans):
+            print(f"  {j+1}. ({start}, {end}): {example[start:end]}")
         
         # Get paragraphs
         paragraphs = segmenter.segment_to_paragraphs(example)
         print("\nParagraphs:")
         for j, paragraph in enumerate(paragraphs):
             print(f"  {j+1}. {paragraph}")
+            
+        # Get paragraphs with character spans
+        paragraphs_with_spans = segmenter.segment_to_paragraphs_with_spans(example)
+        print("\nParagraphs with character spans:")
+        for j, (paragraph, span) in enumerate(paragraphs_with_spans):
+            start, end = span
+            print(f"  {j+1}. {paragraph}")
+            print(f"     Span: ({start}, {end})")
         
         print("-" * 50)
 

@@ -14,15 +14,15 @@ from charboundary.constants import (
 
 class CharacterEncoderProtocol(Protocol):
     """Protocol defining the interface for character encoders."""
-    
+
     def encode(self, char: str) -> int:
         """Encode a character into a numerical representation."""
         ...
-    
+
     def is_terminal_sentence_char(self, char: str) -> bool:
         """Check if a character can possibly end a sentence."""
         ...
-    
+
     def is_terminal_paragraph_char(self, char: str) -> bool:
         """Check if a character can indicate the end of a paragraph."""
         ...
@@ -31,7 +31,7 @@ class CharacterEncoderProtocol(Protocol):
 class CharacterEncoder:
     """
     Encodes characters into numerical representations based on their type.
-    
+
     This is the default implementation that categorizes characters into:
     - Alphabetic: values > 0 (1-26 for a-z)
     - Numeric: value 0
@@ -63,7 +63,7 @@ class CharacterEncoder:
 
         # Encode based on character type
         if char.isalpha():
-            value = ord(char.lower()) - ord('a') + 1
+            value = ord(char.lower()) - ord("a") + 1
         elif char.isdigit():
             value = 0
         elif char in TERMINAL_SENTENCE_CHAR_LIST:
@@ -109,28 +109,28 @@ class CharacterEncoder:
 class OneHotCharacterEncoder(CharacterEncoder):
     """
     A character encoder that uses one-hot encoding.
-    
+
     This provides an alternative encoding strategy where each unique character
     gets its own distinct integer value, rather than being categorized.
     """
-    
+
     def encode(self, char: str) -> int:
         """
         Encode a character using one-hot style encoding.
-        
+
         Args:
             char (str): The character to encode
-            
+
         Returns:
             int: Unique integer for this character
         """
         # Check cache first
         if char in self.cache:
             return self.cache[char]
-            
+
         # Use unicode code point as the value
         value = ord(char)
-        
+
         # Cache and return
         self.cache[char] = value
         return value

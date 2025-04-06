@@ -11,6 +11,7 @@ A modular library for segmenting text into sentences and paragraphs based on cha
 
 - Character-level text segmentation
 - Support for sentence and paragraph boundaries
+- Character span extraction for precise text positions
 - Customizable window sizes for context
 - Support for abbreviations
 - Highly optimized performance (up to 280,000 characters/second)
@@ -145,6 +146,36 @@ The models are optimized for handling:
 - Legal citations (e.g., "Brown v. Board of Education, 347 U.S. 483 (1954)")
 - Multi-line quotes
 - Enumerated lists (partial support)
+
+### Getting Character Spans
+
+CharBoundary can provide exact character spans (start and end positions) for each segment:
+
+```python
+from charboundary import get_default_segmenter
+
+segmenter = get_default_segmenter()
+text = "This is a sample text. It has multiple sentences. Here's the third one."
+
+# Get sentences with their character spans
+sentences_with_spans = segmenter.segment_to_sentences_with_spans(text)
+for sentence, (start, end) in sentences_with_spans:
+    print(f"Span ({start}-{end}): {sentence}")
+    # Verify the span points to the correct text
+    assert text[start:end].strip() == sentence.strip()
+
+# Get only the spans without the text
+spans = segmenter.get_sentence_spans(text)
+print(f"Spans: {spans}")  # [(0, 22), (22, 46), (46, 67)]
+
+# The spans cover EVERY character in the input
+assert sum(end - start for start, end in spans) == len(text)
+
+# Do the same for paragraphs
+paragraph_spans = segmenter.get_paragraph_spans(text)
+```
+
+See the complete example in `examples/character_spans_example.py`.
 
 ### Training Your Own Model
 

@@ -14,7 +14,7 @@ from charboundary.cli.best_model import add_best_model_args, handle_best_model
 def create_parser() -> argparse.ArgumentParser:
     """Create the command-line argument parser."""
     parser = argparse.ArgumentParser(
-        description="CharBoundary: A library for segmenting text into sentences and paragraphs."
+        description="CharBoundary: A library for segmenting text into sentences."
     )
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
@@ -29,10 +29,10 @@ def create_parser() -> argparse.ArgumentParser:
 def main(args: Optional[List[str]] = None) -> int:
     """
     Main entry point for the CLI.
-    
+
     Args:
         args: Command line arguments (defaults to sys.argv[1:] if None)
-        
+
     Returns:
         Exit code
     """
